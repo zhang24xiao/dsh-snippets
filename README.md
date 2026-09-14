@@ -70,6 +70,26 @@ The built `lib/index.js` and `client/client.js` are committed, so a
 | Snippet library | the `dsh-snippets` namespace of the profile's settings document |
 | Backups, Gist token, watcher memory | `$DSH_HOME/dsh-snippets/` |
 
+## Layout notes
+
+- The sidebar-foot trigger is **icon-only** in both column states, matching the
+  other footer actions (the update and phone entries) and the `</>` button in
+  the SiYuan original. The tooltip carries the name and the live counts; the
+  manager panel's footer carries them permanently.
+- The sidebar shell lays the foot out as a column but keeps
+  `sidebar.footer.action` a **row** even when the column is collapsed to the
+  56px rail. With one action that is invisible; with two, the icons land side by
+  side and overflow. This plugin therefore injects one narrowly scoped rule that
+  makes the collapsed row a column again:
+
+  ```css
+  html [class*='_collapsed'] [class*='_footerActions'] { flex-direction: column; … }
+  ```
+
+  The attribute-substring selectors are deliberate: if the shell's class hashes
+  change, the rule simply stops matching and the rail falls back to the shipped
+  layout instead of breaking.
+
 ## How CSS and JS take effect
 
 - Each enabled **CSS** snippet becomes one `<style data-dsh-snippet="<id>">`

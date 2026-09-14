@@ -9,6 +9,9 @@
  *
  * The panel is portaled to `document.body` and anchored above the trigger, so
  * the sidebar's own scroll containers and overflow cannot clip it.
+ *
+ * The trigger is icon-only in both column states. `wide` still chooses the
+ * glyph size, because the collapsed rail draws its neighbours one step larger.
  */
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -51,7 +54,15 @@ export function FooterEntry({ controller, t, wide }: FooterEntryProps) {
   useDismissOnOutsidePointer(rootRef, open, setOpen, panelRef)
 
   const enabledCount = config.snippets.filter((snippet) => snippet.enabled).length
-  const label = t('trigger.label')
+  // Icon-only, like the neighbouring footer actions; the tooltip carries the
+  // name and the live counts so nothing is lost by dropping the label.
+  const tooltip =
+    enabledCount > 0
+      ? `${t('trigger.label')} · ${t('panel.footer.count', {
+          total: config.snippets.length,
+          enabled: enabledCount,
+        })}`
+      : t('trigger.open')
 
   return (
     <div className={`${PREFIX}-entry`} ref={rootRef}>
@@ -63,12 +74,10 @@ export function FooterEntry({ controller, t, wide }: FooterEntryProps) {
         aria-label={t('trigger.open')}
         aria-haspopup="dialog"
         aria-expanded={open}
-        title={t('trigger.open')}
+        title={tooltip}
         onClick={() => { setOpen((value) => !value) }}
       >
         <CodeGlyph size={wide ? 16 : 18} />
-        {wide ? <span className={`${PREFIX}-trigger-label`}>{label}</span> : null}
-        {wide && enabledCount > 0 ? <span className={`${PREFIX}-trigger-count`}>{enabledCount}</span> : null}
       </button>
 
       {open

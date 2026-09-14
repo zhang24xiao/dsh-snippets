@@ -179,22 +179,45 @@ export function createController(
 
   const runtime = createRuntime(log)
   let dialogSeq = 0
+  /** Last accepted section, so a reconnect does not blank the page. */
+  let lastGood: SnippetsConfig | null = null
+  /** The section the runtime was last projected from. */
+  let synced: SnippetsConfig | null = null
 
+  /**
+   * The current section, purely.
+   *
+   * While the namespace is still loading, or if it was never exposed, the last
+   * accepted section is returned rather than the schema default: a transient
+   * reconnect must not strip the user's CSS off the page. Only a namespace that
+   * never produced a value falls back to the defaults.
+   *
+   * The return value is referentially stable between commits, which is what
+   * `useSyncExternalStore` requires, and this function has NO side effects
+   * because React calls it during render.
+   */
   const read = (): SnippetsConfig => {
     const snapshot = scope.getSnapshot()
-    const value = snapshot.status === 'ready' ? snapshot.value : undefined
-    return syncRuntime(value ?? fallback)
+    if (snapshot.status === 'ready' && snapshot.value !== undefined) {
+      lastGood = snapshot.value
+      return snapshot.value
+    }
+    return lastGood ?? fallback
   }
 
   /**
-   * Re-project the page after every read of a new snapshot.
+   * Project the current section onto the page.
    *
-   * `getConfig` is called by `useSyncExternalStore` on every render, so this
-   * has to stay cheap and idempotent — `runtime.sync` only touches the DOM when
-   * something actually differs, and the UI store only notifies when a counter
-   * moves.
+   * Deliberately NOT called from `getConfig`: mutating the DOM and notifying the
+   * UI store are side effects, and React may invoke a `getSnapshot` function at
+   * any point during a render. This runs once when the controller is built and
+   * on every settings commit instead, and it no-ops when the section reference
+   * has not moved.
    */
-  const syncRuntime = (config: SnippetsConfig): SnippetsConfig => {
+  const syncRuntime = (): void => {
+    const config = read()
+    if (config === synced) return
+    synced = config
     if (debug !== config.consoleDebug) {
       debug = config.consoleDebug
       log('debug logging enabled')
@@ -208,16 +231,11 @@ export function createController(
     ) {
       ui.set({ ...current, ...state, reloadPending: state.jsPendingReload })
     }
-    return config
   }
 
   const mutate = async (ops: Array<{ op: 'set' | 'unset'; path: string[]; value?: unknown }>): Promise<void> => {
     log('write', ops)
     await scope.mutate(ops as unknown as Parameters<typeof scope.mutate>[0])
-  }
-
-  const setField = async (field: string, value: unknown): Promise<void> => {
-    await mutate([{ op: 'set', path: [field], value }])
   }
 
   const replaceSnippets = async (next: Snippet[], extra: Record<string, unknown> = {}): Promise<void> => {
@@ -375,9 +393,11 @@ export function createController(
     },
   }
 
-  // Keep `consoleDebug` mirrored even when nothing renders (headless mount).
-  scope.subscribe(() => { void read() })
-  void read()
+  // Project once for an already-resolved section, then on every commit. A
+  // namespace that resolves later still lands here, because the scope notifies
+  // its subscribers on the loading → ready transition.
+  scope.subscribe(syncRuntime)
+  syncRuntime()
 
   return controller
 }

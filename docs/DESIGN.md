@@ -422,6 +422,17 @@ dsh plugin --profile web add link:/mnt/mediaHDD4T/work/dsh-workspace/dsh_plugin/
     与参考图不符；因此新增 `src/client/ui/icons.tsx`（`CodeGlyph`，三笔描边，`currentColor`），
     与 `dsh-remote-web-ui` 自绘手机图标的做法一致。`test/client.test.mjs` 现在断言触发器内联的
     就是这三笔的 `</>` 字形，避免以后被悄悄换回。
+11. **触发器改为纯图标。** 实测反馈「展开时不需要文字」；同时官方外壳在收起状态下
+    仍把 `sidebar.footer.action` 排成横向，导致第二个插件的图标被挤出 56px 轨道。
+    因此：触发器去掉文字与计数徽标（数量移入悬停提示与面板底部），
+    并注入一条窄范围规则 `html [class*='_collapsed'] [class*='_footerActions']{flex-direction:column}`。
+    该 shim 用属性子串选择器 + `html` 提高优先级，外壳类名变化时只会失效而不会致错；
+    `test/client.test.mjs` 断言这条规则确实随样式表下发。
+12. **运行时的投影时机修正。** 原实现把「同步运行时」塞在 `getConfig` 里，
+    而 `getConfig` 是交给 `useSyncExternalStore` 的 `getSnapshot`，React 会在渲染期调用它——
+    在渲染期改 DOM、通知 UI store 是副作用。现在 `getConfig` 是纯读取，
+    投影只在控制器创建时与每次设置提交时执行；同时缓存最后一次可用配置，
+    避免连接抖动（ready→loading）时把已生效的 CSS 从页面上抹掉。
 
 ### 12.3 落地后的目录
 

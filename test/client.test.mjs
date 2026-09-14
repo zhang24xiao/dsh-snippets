@@ -260,9 +260,19 @@ publish({
 
 const footerHtml = renderSeat('sidebar.footer.action', { wide: true })
 assert.match(footerHtml, /aria-haspopup="dialog"/, 'the trigger must advertise its dialog')
-assert.match(footerHtml, /trigger\.open/, 'the trigger needs an accessible name')
-assert.match(footerHtml, /dsn-trigger-count">1</, 'the wide trigger shows how many snippets are enabled')
-// The trigger must draw its own `</>` mark. The shared icon set's nearest
+assert.match(footerHtml, /aria-label="trigger\.open"/, 'the trigger needs a stable accessible name')
+
+// Icon-only, matching the neighbouring footer actions: the button must contain
+// exactly one glyph and no text node.
+const buttonInner = /<button[^>]*>([\s\S]*?)<\/button>/.exec(footerHtml)?.[1] ?? ''
+assert.equal((buttonInner.match(/<svg/g) ?? []).length, 1, 'the trigger draws exactly one glyph')
+assert.equal(
+  buttonInner.replace(/<svg[\s\S]*?<\/svg>/, '').trim(),
+  '',
+  'the trigger must render no label or badge, only the icon',
+)
+
+// The trigger draws its own `</>` mark: the shared icon set's nearest
 // neighbour is a `#` glyph, so this asserts the three-stroke glyph is ours.
 assert.match(
   footerHtml,
@@ -275,8 +285,34 @@ assert.equal(
   'the code glyph is the three-stroke </> mark',
 )
 
+// The tooltip carries what the dropped label used to say.
+const wideTitle = /title="([^"]*)"/.exec(footerHtml)?.[1] ?? ''
+assert.notEqual(wideTitle, 'trigger.open', 'the tooltip reports counts once snippets are enabled')
+
 const railHtml = renderSeat('sidebar.footer.action', { wide: false })
 assert.match(railHtml, /data-rail="rail"/, 'the rail state must be marked for styling')
+
+// …and with nothing enabled it falls back to the plain action label.
+publish({ ...snapshotValue, snippets: [] })
+const idleHtml = renderSeat('sidebar.footer.action', { wide: true })
+assert.match(idleHtml, /title="trigger\.open"/, 'an empty library keeps the plain tooltip')
+publish({
+  ...snapshotValue,
+  snippets: [
+    { id: cssId, name: 'render probe', type: 'css', content: 'a{}', enabled: true, created: 1 },
+    { id: jsId, name: '', type: 'js', content: 'b()', enabled: false, created: 2 },
+  ],
+})
+
+// The collapsed rail shim must ship: the shell keeps `footerActions` a row when
+// collapsed, which pushes a second plugin's icon out of the 56px rail.
+const sheetText = document.head.querySelector('style[data-dsh-snippets-ui]')?.textContent ?? ''
+assert.match(
+  sheetText,
+  /\[class\*='_collapsed'\] \[class\*='_footerActions'\]/,
+  'the collapsed-rail layout shim must be in the injected stylesheet',
+)
+assert.match(sheetText, /flex-direction: column/, 'the shim stacks the footer actions vertically')
 
 const sectionHtml = renderSeat('settings.section')
 for (const group of [

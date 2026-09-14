@@ -32,14 +32,44 @@ export const UI_CSS = `
   min-width: 0;
 }
 
+/* ── the collapsed-rail layout shim ───────────────────────────────── */
+
+/*
+ * The sidebar shell lays the foot out as a column and gives
+ * \`sidebar.footer.action\` a ROW inside it, even when the column is collapsed
+ * to the 56px rail. With one action that is invisible; with
+ * dsh-remote-web-ui's entry plus this one, the rail's own row (which stacks
+ * its two icons) and this plugin's icon end up side by side and the icon is
+ * pushed out of the rail.
+ *
+ * The attribute-substring selectors are deliberately defensive: they match the
+ * shell's CSS-module classes by their readable suffix, so a hash change simply
+ * stops the rule from applying (and the rail degrades to the shipped layout)
+ * instead of breaking anything. \`html\` raises specificity above the shell's
+ * own two-class rule so the outcome does not depend on stylesheet order.
+ */
+html [class*='_collapsed'] [class*='_footerActions'] {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
 /* ── the sidebar-foot trigger ──────────────────────────────────────── */
 
+/*
+ * Icon-only, matching the neighbouring footer actions (the update and phone
+ * entries): 附图 1's toolbar button is a bare </> glyph, and the rail has no
+ * room for a word. The count lives in the manager panel's footer and in this
+ * button's tooltip.
+ */
 .${PREFIX}-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  width: 28px;
   height: 28px;
-  padding: 0 8px;
+  padding: 0;
   border: 0;
   border-radius: 7px;
   background: transparent;
@@ -62,18 +92,7 @@ export const UI_CSS = `
   outline: 2px solid var(--dsw-alias-brand-primary, #4d6bfe);
   outline-offset: 1px;
 }
-.${PREFIX}-trigger[data-rail='rail'] { padding: 0 6px; }
-.${PREFIX}-trigger-label { white-space: nowrap; }
-.${PREFIX}-trigger-count {
-  min-width: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--dsw-alias-bg-layer-3, rgb(0 0 0 / 7%));
-  color: var(--dsw-alias-label-secondary, #61666b);
-  font-size: 11px;
-  line-height: 16px;
-  text-align: center;
-}
+.${PREFIX}-trigger[data-rail='rail'] { width: 30px; height: 30px; }
 
 /* ── the manager panel ─────────────────────────────────────────────── */
 
