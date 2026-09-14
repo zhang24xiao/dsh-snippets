@@ -1,0 +1,99 @@
+{
+  "name": "dsh-snippets",
+  "version": "0.1.0",
+  "description": "CSS/JS code snippet manager for the DeepSeek Harness web GUI: a sidebar quick-toggle panel beside Settings and an independent Code Snippets settings page, with live CSS injection, sandboxed JS execution, folder mirroring and GitHub Gist sync. · DSH Web 代码片段管理器：侧栏快捷开关 + 独立设置页，支持 CSS 实时注入、JS 执行、文件夹监听与 Gist 同步。",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "./lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": "./client/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "client",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "cordis",
+    "snippets",
+    "css",
+    "javascript",
+    "userstyle",
+    "userchrome",
+    "代码片段"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhang24xiao/dsh-snippets.git"
+  },
+  "homepage": "https://github.com/zhang24xiao/dsh-snippets",
+  "bugs": {
+    "url": "https://github.com/zhang24xiao/dsh-snippets/issues"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "build:test": "node scripts/build-tests.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && npm run build:test && node test/host.test.mjs && node test/client.test.mjs",
+    "check": "npm run typecheck && npm run test"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@codemirror/commands": "^6.8.1",
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/search": "^6.5.11",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.6",
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-client-locale": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-layout": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-settings": "^0.1.5-rc.2",
+    "@lezer/highlight": "^1.2.1",
+    "@types/node": "^22.20.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "~18.3.0",
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "schemastery": "^3.18.0",
+    "typescript": "^5.9.3"
+  }
+}

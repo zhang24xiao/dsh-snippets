@@ -1,0 +1,4 @@
+# pnpm 11 keeps install policy here. esbuild's postinstall links its platform
+# binary, which `npm run build` needs; nothing else is approved to run scripts.
+allowBuilds:
+  esbuild: true

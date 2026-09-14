@@ -1,0 +1,7 @@
+node_modules/
+.pnpm-store/
+*.log
+*.tsbuildinfo
+.DS_Store
+test/.build/
+test/.scratch-*/

@@ -1,0 +1,10 @@
+# dsh bundle patch: inserts this plugin into a profile's layer stack.
+# Install with:  dsh plugin --profile web add github:zhang24xiao/dsh-snippets
+# This single row mounts BOTH halves: the host half (the `dsh-snippets`
+# settings namespace, the snippet-folder watcher, the backup folder and the
+# GitHub Gist bridge) and the browser half (the sidebar quick-toggle panel and
+# the Code Snippets settings page, registered into the official slots and
+# served from this package's `client/client.js`).
+- insert:
+    - id: dsh-snippets
+      name: 'dsh-snippets'
