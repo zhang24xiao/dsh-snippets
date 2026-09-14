@@ -12,11 +12,11 @@
  */
 import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { IconCodeOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { useAnchoredPosition, useDismissOnOutsidePointer } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnippetsController } from '../controller.ts'
 import { openSettingsSection } from '../deep-link.ts'
 import { PREFIX } from '../styles.ts'
+import { CodeGlyph } from './icons.tsx'
 import { ManagerPanel } from './ManagerPanel.tsx'
 import { useConfig, type T } from './shared.tsx'
 
@@ -66,7 +66,7 @@ export function FooterEntry({ controller, t, wide }: FooterEntryProps) {
         title={t('trigger.open')}
         onClick={() => { setOpen((value) => !value) }}
       >
-        <IconCodeOutline16 size={wide ? 16 : 18} />
+        <CodeGlyph size={wide ? 16 : 18} />
         {wide ? <span className={`${PREFIX}-trigger-label`}>{label}</span> : null}
         {wide && enabledCount > 0 ? <span className={`${PREFIX}-trigger-count`}>{enabledCount}</span> : null}
       </button>

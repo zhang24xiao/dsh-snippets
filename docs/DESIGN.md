@@ -418,6 +418,10 @@ dsh plugin --profile web add link:/mnt/mediaHDD4T/work/dsh-workspace/dsh_plugin/
    `button[aria-haspopup="dialog"]`，点击后再按本地化标题匹配 `[role="dialog"][aria-modal="true"] nav button`。
    任一步失败都只是「没有跳转」，不影响任何功能。
 9. **文件清单** 增加 `scripts/build-tests.mjs` 与 `test/entry.ts`（仅开发期使用，不随包发布）。
+10. **`</>` 图标自己画。** 实测发现官方图标集里的 `IconCodeOutline16` 画的是 `#` 而不是 `</>`，
+    与参考图不符；因此新增 `src/client/ui/icons.tsx`（`CodeGlyph`，三笔描边，`currentColor`），
+    与 `dsh-remote-web-ui` 自绘手机图标的做法一致。`test/client.test.mjs` 现在断言触发器内联的
+    就是这三笔的 `</>` 字形，避免以后被悄悄换回。
 
 ### 12.3 落地后的目录
 

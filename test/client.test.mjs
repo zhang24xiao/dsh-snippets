@@ -262,6 +262,18 @@ const footerHtml = renderSeat('sidebar.footer.action', { wide: true })
 assert.match(footerHtml, /aria-haspopup="dialog"/, 'the trigger must advertise its dialog')
 assert.match(footerHtml, /trigger\.open/, 'the trigger needs an accessible name')
 assert.match(footerHtml, /dsn-trigger-count">1</, 'the wide trigger shows how many snippets are enabled')
+// The trigger must draw its own `</>` mark. The shared icon set's nearest
+// neighbour is a `#` glyph, so this asserts the three-stroke glyph is ours.
+assert.match(
+  footerHtml,
+  /<svg[^>]*viewBox="0 0 16 16"[^>]*aria-hidden="true"/,
+  'the trigger must inline its own code glyph',
+)
+assert.equal(
+  (footerHtml.match(/stroke-linecap="round"/g) ?? []).length,
+  3,
+  'the code glyph is the three-stroke </> mark',
+)
 
 const railHtml = renderSeat('sidebar.footer.action', { wide: false })
 assert.match(railHtml, /data-rail="rail"/, 'the rail state must be marked for styling')
