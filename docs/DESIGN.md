@@ -440,6 +440,13 @@ dsh plugin --profile web add link:/mnt/mediaHDD4T/work/dsh-workspace/dsh_plugin/
     与隔壁 36px 圆形热区并列非常刺眼。现在基础规则即 36×36 圆形（收起态），
     展开态仅追加 `width:auto / radius 999px / padding 0 10px`，两者悬停面完全一致。
     `test/client.test.mjs` 同时断言 `data-wide` / `data-rail` 标记与这条几何规则随样式表下发。
+15. **编辑器弹窗改为视口自适应。** 官方 `Modal` 卡片是 `width: min(380px, 100%)` 且没有高度上限——
+    对两三个字段的表单合适，对代码编辑器太窄（内容列只有 332px），而且片段一长就会把卡片顶出窗口，
+    连关闭按钮都够不到。现在弹窗取 `width: min(1040px, 100vw - 48px)`、
+    `height: min(760px, 100vh - 72px)`（48px 是遮罩层的内边距，额外 24px 是卡片自身的下内边距，
+    因为 DSH 没有全局 `box-sizing` 重置，属 content-box），
+    并让 `content → body → 代码区` 走 flex 链吃掉剩余高度。已在 1222×700 / 1600×900 / 1000×600 /
+    800×520 / 560×720 / 400×700 / 1222×480 七种视口下验证：卡片都在视口内，代码区不低于 180px。
 12. **运行时的投影时机修正。** 原实现把「同步运行时」塞在 `getConfig` 里，
     而 `getConfig` 是交给 `useSyncExternalStore` 的 `getSnapshot`，React 会在渲染期调用它——
     在渲染期改 DOM、通知 UI store 是副作用。现在 `getConfig` 是纯读取，

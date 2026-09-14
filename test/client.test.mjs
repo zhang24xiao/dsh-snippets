@@ -335,6 +335,24 @@ assert.match(
   /\[data-wide='wide'\] \{\s*width: auto;\s*border-radius: 999px;\s*padding: 0 10px;/,
   'the wide trigger must reproduce the neighbour\'s 36px pill geometry',
 )
+// The shipped Modal card is `min(380px, 100%)` with no height cap: right for a
+// two-field form, but a long snippet overflows the window and takes the close
+// button with it. The editor dialog must size itself to the viewport instead.
+assert.match(
+  sheetText,
+  /\.dsn-editor-dialog\s*\{[^}]*width: min\(1040px, calc\(100vw - 48px\)\)/,
+  'the editor dialog must adapt its width to the viewport',
+)
+assert.match(
+  sheetText,
+  /\.dsn-editor-dialog\s*\{[^}]*height: min\(760px, calc\(100vh - 72px\)\)/,
+  'the editor dialog must cap its height so it never outgrows the window',
+)
+assert.match(
+  sheetText,
+  /\.dsn-cm\s*\{[^}]*flex: 1 1 auto/,
+  'the code area must absorb the leftover height rather than a fixed 46vh',
+)
 
 const sectionHtml = renderSeat('settings.section')
 for (const group of [

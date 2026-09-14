@@ -337,7 +337,37 @@ html [class*='_collapsed'] [class*='_footerActions'] {
 
 /* ── the editor ────────────────────────────────────────────────────── */
 
-.${PREFIX}-editor-body { display: flex; flex-direction: column; gap: 10px; }
+/*
+ * Dialog sizing.
+ *
+ * The shipped Modal card is \`width: min(380px, 100%)\` — the right shape for a
+ * two-field form, and far too narrow for a code editor (the primitive's own
+ * 24px side padding leaves a 332px text column). These rules take the card to
+ * the app's own modal scale and adapt it to the viewport, then let the code area
+ * absorb whatever height is left so the dialog never grows past the window.
+ */
+.${PREFIX}-editor-dialog {
+  /* 48px = the layer's own 24px padding on both sides; the extra 24 on the
+     height is the card's bottom padding, which the primitive sets and which
+     DSH's content-box sizing leaves OUTSIDE this height. */
+  width: min(1040px, calc(100vw - 48px));
+  height: min(760px, calc(100vh - 72px));
+}
+/* The card's content column takes the leftover height… */
+.${PREFIX}-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/*
+ * …and so does the primitive's own \`.body\`, which is the last div inside that
+ * column (header, optional description, body). Named by position because the
+ * class is a CSS-module hash; if the primitive ever adds a trailing div the
+ * rule simply stops applying and the code area falls back to its min-height.
+ */
+.${PREFIX}-editor-body > div:last-child { flex: 1 1 auto; min-height: 0; }
 .${PREFIX}-editor-meta {
   display: flex;
   align-items: center;
@@ -353,6 +383,8 @@ html [class*='_collapsed'] [class*='_footerActions'] {
 }
 .${PREFIX}-editor-toolbar-spacer { flex: 1 1 auto; }
 .${PREFIX}-cm {
+  flex: 1 1 auto;
+  min-height: 180px;
   overflow: hidden;
   border: 1px solid var(--dsw-alias-border-l2, rgb(0 0 0 / 12%));
   border-radius: 10px;
@@ -392,6 +424,10 @@ html [class*='_collapsed'] [class*='_footerActions'] {
 
 /* CodeMirror syntax palette; overridden for dark below. */
 .dsn-code-scope {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   --dsn-code-keyword: #a626a4;
   --dsn-code-string: #50a14f;
   --dsn-code-number: #986801;

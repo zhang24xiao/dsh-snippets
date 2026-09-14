@@ -231,6 +231,7 @@ export function EditorDialog({ controller, t, request }: EditorDialogProps) {
       title={title}
       description={description}
       closeLabel={t('action.close')}
+      className={`${PREFIX}-editor-dialog`}
       contentClassName={`${PREFIX}-editor-body`}
       footer={
         discarding ? (
@@ -325,8 +326,10 @@ export function EditorDialog({ controller, t, request }: EditorDialogProps) {
         </span>
       </div>
 
+      {/* Height comes from the flex chain (dialog → content → body → here),
+          so the editor fills the card instead of a hard-coded 46vh. */}
       <div className={`${PREFIX}-code-scope`}>
-        <div ref={hostRef} className={`${PREFIX}-cm`} style={{ height: '46vh', minHeight: 220 }} />
+        <div ref={hostRef} className={`${PREFIX}-cm`} />
       </div>
 
       {discarding ? (

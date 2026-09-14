@@ -31,6 +31,10 @@ preferences. Enabled **CSS** is injected into the page immediately; enabled
 - Configurable indent unit, font size and soft wrap; the theme follows the app,
   including dark mode
 - **Live CSS preview** — see the page change while you type, without saving
+- The editor dialog sizes itself to the viewport (up to 1040×760) instead of the
+  shell's 380px form card, and the code area absorbs the leftover height, so a
+  long snippet scrolls inside the card rather than pushing the dialog past the
+  window edge
 - Best-effort re-indent that only ever rewrites leading whitespace
 - Content guards: CSS containing `</style` or `<script` is refused, and JS is
   parsed before it is saved
