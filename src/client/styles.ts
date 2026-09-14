@@ -448,22 +448,85 @@ body[data-ds-dark-theme] .dsn-code-scope {
   --dsn-code-var: #e5c07b;
 }
 
-/* ── the settings page ─────────────────────────────────────────────── */
+/* ── the plugin-configuration card ─────────────────────────────────── */
+
+/*
+ * Chrome copied value for value from the neighbouring cards in the same tab
+ * (their PluginCard module: radius 16, a half-pixel border, 14/16 header
+ * padding, 15px/600 name over a 13px description, body inset 16px under a
+ * hairline). Matching them is the whole point: this card is one row in that
+ * list, and a row that looks imported reads as one.
+ */
+.${PREFIX}-pcard {
+  border: .5px solid var(--dsw-alias-border-l4, rgb(0 0 0 / 10%));
+  border-radius: 16px;
+  background: var(--dsw-alias-bg-layer-3, #fbfbfc);
+  list-style: none;
+  transition: border-color .16s, background .16s;
+}
+.${PREFIX}-pcard:hover { border-color: var(--dsw-alias-label-dimmed, #b6b9be); }
+.${PREFIX}-pcard-open {
+  border-color: var(--dsw-alias-label-dimmed, #b6b9be);
+  background: var(--dsw-alias-bg-layer-2, #f5f5f6);
+}
+.${PREFIX}-pcard-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+}
+.${PREFIX}-pcard-head:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, #4d6bfe);
+  outline-offset: -2px;
+}
+.${PREFIX}-pcard-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.${PREFIX}-pcard-name {
+  color: var(--dsw-alias-label-primary, #0f1115);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.${PREFIX}-pcard-desc {
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.${PREFIX}-pcard-chevron {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  transition: transform .16s;
+}
+.${PREFIX}-pcard-chevron[data-open='true'] { transform: rotate(180deg); }
+.${PREFIX}-pcard-body {
+  margin: 0 16px;
+  padding-bottom: 8px;
+  border-top: .5px solid var(--dsw-alias-border-l2, rgb(0 0 0 / 8%));
+}
+
+/* ── the settings body (inside the card) ───────────────────────────── */
 
 .${PREFIX}-page {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  max-width: 720px;
-  padding: 2px 2px 24px;
+  padding: 12px 0 4px;
   color: var(--dsw-alias-label-primary, #0f1115);
   font-size: 13px;
-}
-.${PREFIX}-intro {
-  margin: 0;
-  color: var(--dsw-alias-label-secondary, #61666b);
-  font-size: 12.5px;
-  line-height: 1.7;
 }
 .${PREFIX}-group {
   border: 1px solid var(--dsw-alias-border-l1, rgb(0 0 0 / 8%));

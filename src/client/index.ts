@@ -25,6 +25,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // `shell.overlay` seat declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+// Type-only: the Plugins section's `settings.plugin.item` keyed seat.
+import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 import { NAMESPACE, decodeConfig } from '../shared/schema.ts'
 import type { FooterPosition, SnippetsConfig } from '../shared/types.ts'
 import { createController, type SnippetsController } from './controller.ts'
@@ -33,7 +35,7 @@ import { installGlobal } from './apply.ts'
 import { STYLE_ATTRIBUTE, UI_CSS } from './styles.ts'
 import { FooterEntry } from './ui/FooterEntry.tsx'
 import { OverlayHost } from './ui/OverlayHost.tsx'
-import { SettingsPage } from './ui/SettingsPage.tsx'
+import { PluginSettingsCard } from './ui/PluginSettingsCard.tsx'
 
 /** Cordis plugin name; the loader keys the browser entry on it. */
 export const name = 'dsh-snippets'
@@ -125,22 +127,23 @@ export function apply(ctx: ClientContext): void {
     }
   })
 
-  /* ── the independent settings page ─────────────────────────────── */
+  /* ── the card in Settings → Plugins → Plugin configuration ─────── */
 
-  ctx.slots.inject('settings.section', () => {
+  // Keyed by the settings namespace the card edits. The Plugins section's
+  // `configurable` tab reads which namespaces the host serves and dispatches one
+  // slot key per namespace, so this registration is the whole pairing: the host
+  // half registers `dsh-snippets`, this card claims it, and the tab needs to
+  // know nothing about either.
+  ctx.slots.inject('settings.plugin.item', () => {
     try {
       return ctx.slots.register(
         {
-          name: 'settings.section',
-          id: NAMESPACE,
-          order: 30,
-          // Re-registered by the shell on locale change, so a thunk keeps the
-          // nav label in the active language.
-          label: () => t('section.title'),
+          name: 'settings.plugin.item',
+          key: NAMESPACE,
           locale: NS,
           inject: () => ({ controller }),
         },
-        SettingsPage,
+        PluginSettingsCard,
       )
     } catch {
       return () => {}

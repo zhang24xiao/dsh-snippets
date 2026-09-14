@@ -1,7 +1,7 @@
 {
   "name": "dsh-snippets",
   "version": "0.1.0",
-  "description": "CSS and JS snippet manager for the DeepSeek Harness web GUI. A sidebar-footer quick toggle opens a manager panel and Settings gains an independent Code Snippets page; enabled CSS is injected as style elements and enabled JS runs in the page, so only trusted code should be enabled. Also mirrors a local folder of .css/.js files and publishes or imports a library through the GitHub Gist API. · DSH Web 代码片段管理器：侧栏底部快捷开关与独立设置页；启用的 CSS 注入为 style 元素，启用的 JS 在页面内执行（无沙箱，只启用可信代码）；并支持本地文件夹监听与 Gist 同步。",
+  "description": "CSS and JS snippet manager for the DeepSeek Harness web GUI. A sidebar-footer quick toggle opens a manager panel, and Settings gains a card under Plugins; enabled CSS is injected as style elements and enabled JS runs in the page, so only trusted code should be enabled. Also mirrors a local folder of .css/.js files and publishes or imports a library through the GitHub Gist API. · DSH Web 代码片段管理器：侧栏底部快捷开关打开管理面板，设置里在「插件」下新增一张卡片；启用的 CSS 注入为 style 元素，启用的 JS 在页面内执行（无沙箱，只启用可信代码）；并支持本地文件夹监听与 Gist 同步。",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -83,6 +83,7 @@
     "@deepseek-ai/dsh-client-ui-primitives": "0.1.5-rc.2",
     "@deepseek-ai/dsh-client-ui-renderer": "0.1.5-rc.2",
     "@deepseek-ai/dsh-client-ui-settings": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings-plugins": "0.1.5-rc.2",
     "@deepseek-ai/dsh-client-ui-sidebar": "0.1.5-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.2",
     "@deepseek-ai/dsh-settings": "^0.1.5-rc.2",

@@ -24,6 +24,7 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import * as react from 'react'
 import * as reactDom from 'react-dom'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { createRoot } from 'react-dom/client'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const bundlePath = resolve(here, '..', 'client', 'client.js')
@@ -158,14 +159,16 @@ mod.apply(ctx)
 const seats = registrations.map((entry) => entry.options.name)
 assert.deepEqual(
   seats.sort(),
-  ['settings.section', 'shell.overlay', 'sidebar.footer.action'],
+  ['settings.plugin.item', 'shell.overlay', 'sidebar.footer.action'],
   'all three seats must be registered',
 )
 const footer = registrations.find((entry) => entry.options.name === 'sidebar.footer.action')
 assert.equal(footer.options.order, 10, 'the default footer position is the right-hand side')
 assert.equal(footer.options.locale, 'snippets')
-const section = registrations.find((entry) => entry.options.name === 'settings.section')
-assert.equal(section.options.id, 'dsh-snippets', 'the settings page is its own navigation entry')
+// The settings card lives in Settings -> Plugins -> Plugin configuration, and
+// that tab dispatches cards keyed by the settings namespace they edit.
+const card = registrations.find((entry) => entry.options.name === 'settings.plugin.item')
+assert.equal(card.options.key, 'dsh-snippets', 'the card must be keyed by the namespace it edits')
 
 assert.ok(
   document.head.querySelector('style[data-dsh-snippets-ui]') !== null,
@@ -240,7 +243,7 @@ assert.equal(document.head.querySelector(`style[data-dsh-snippet="${cssId}"]`).t
 // missing export or a bad prop shape fails here rather than in the GUI.
 const translate = ctx.locale.bind('snippets')
 const controllerRef = registrations
-  .find((item) => item.options.name === 'settings.section')
+  .find((item) => item.options.name === 'settings.plugin.item')
   .options.inject().controller
 
 function renderSeat(seatName, extraProps = {}) {
@@ -313,6 +316,10 @@ publish({
 // The collapsed rail shim must ship: the shell keeps `footerActions` a row when
 // collapsed, which pushes a second plugin's icon out of the 56px rail.
 const sheetText = document.head.querySelector('style[data-dsh-snippets-ui]')?.textContent ?? ''
+// The card must reproduce the neighbouring cards' chrome, not invent its own.
+assert.match(sheetText, /\.dsn-pcard\s*\{[^}]*border-radius: 16px/, 'the card uses the shared radius')
+assert.match(sheetText, /\.dsn-pcard-open\s*\{[^}]*background: var\(--dsw-alias-bg-layer-2/, 'an open card matches the neighbours')
+assert.match(sheetText, /\.dsn-pcard-name\s*\{[^}]*font-size: 15px;\s*font-weight: 600/, 'the card name matches the neighbours')
 assert.match(
   sheetText,
   /\[class\*='_collapsed'\] \[class\*='_footerActions'\]/,
@@ -354,15 +361,22 @@ assert.match(
   'the code area must absorb the leftover height rather than a fixed 46vh',
 )
 
-const sectionHtml = renderSeat('settings.section')
+// The settings card is collapsed by default, so it is rendered into a real DOM
+// and clicked: that puts the disclosure itself under test rather than assuming it.
+const cardRender = await renderCardDisclosure(registrations, translate)
+assert.match(cardRender.collapsed, /dsn-pcard-name/, 'the card renders its head')
+assert.match(cardRender.collapsed, /section\.description/, 'the head carries the description')
+assert.match(cardRender.collapsed, /aria-expanded="false"/, 'the card starts collapsed')
+assert.doesNotMatch(cardRender.collapsed, /group\.general/, 'a collapsed card renders no body')
+
+assert.match(cardRender.expanded, /aria-expanded="true"/, 'clicking expands the card')
 for (const group of [
   'group.general', 'group.menu', 'group.editor', 'group.behavior',
   'group.watch', 'group.data', 'group.gist', 'group.about',
 ]) {
-  assert.match(sectionHtml, new RegExp(group), `the settings page must render the ${group} group`)
+  assert.match(cardRender.expanded, new RegExp(group), `the expanded card must render the ${group} group`)
 }
-assert.match(sectionHtml, /section\.description/)
-assert.match(sectionHtml, /set\.data\.summary/, 'the data group reports the library size')
+assert.match(cardRender.expanded, /set\.data\.summary/, 'the data group reports the library size')
 
 assert.equal(renderSeat('shell.overlay'), '', 'an empty overlay must contribute no markup')
 
@@ -386,6 +400,35 @@ assert.equal(
 )
 
 console.log('client smoke test passed')
+
+/**
+ * Render the plugin-configuration card into a real DOM and click its head, so
+ * the collapsed/expanded states are exercised rather than assumed.
+ * @returns the markup before and after the click.
+ */
+async function renderCardDisclosure(entries, translate) {
+  const act = react.act ?? (await import('react-dom/test-utils')).act
+  globalThis.IS_REACT_ACT_ENVIRONMENT = true
+  const entry = entries.find((item) => item.options.name === 'settings.plugin.item')
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
+
+  await act(async () => {
+    root.render(createElement(entry.component, { ...entry.options.inject(), t: translate }))
+  })
+  const collapsed = host.innerHTML
+
+  const head = host.querySelector('button[aria-expanded]')
+  await act(async () => {
+    head.dispatchEvent(new window.MouseEvent('click', { bubbles: true }))
+  })
+  const expanded = host.innerHTML
+
+  await act(async () => { root.unmount() })
+  host.remove()
+  return { collapsed, expanded }
+}
 
 /** The shape of the settings section, mirroring `shared/schema.ts`. */
 function defaults() {

@@ -1,12 +1,21 @@
 /**
- * The `.settings.section` page: this plugin's own entry in the settings
- * navigation, not a card inside the plugin group.
+ * The settings body: every preference, grouped the way the SiYuan original's
+ * dialog groups them.
  *
- * Every preference the SiYuan original exposes has a home here, grouped the way
- * its own settings dialog groups them, minus the three that describe features
- * DSH does not have (see `docs/DESIGN.md`). Each control writes straight
- * through the controller, so a change is durable the moment it is made and the
- * page needs no Save button.
+ * Rendered inside this plugin's card in **Settings → Plugins → Plugin
+ * configuration** (`PluginSettingsCard`), which is the seat every other
+ * host-plane plugin's settings live in. The card owns the header, so the copy
+ * that used to introduce this page now describes the card instead.
+ *
+ * Every preference the SiYuan original exposes has a home here, minus the three
+ * that describe features DSH does not have (see `docs/DESIGN.md`).
+ *
+ * Each control writes straight through the controller, so a change is durable
+ * the moment it is made and the body needs no Save button. The neighbouring
+ * cards in that tab stage their edits behind Save / Discard instead; this one
+ * deliberately does not, because a snippet manager is used by toggling things
+ * and watching the page react, and a staging layer would put a Save between the
+ * two.
  *
  * Host-backed controls (the folder watch, the backups folder, Gist sync) are
  * gated on `useHostStatus`: the host answers loopback peers only, so on a LAN
@@ -36,7 +45,7 @@ import { useConfig, useFailureToast, useHostStatus, type T } from './shared.tsx'
 const REPOSITORY = 'https://github.com/zhang24xiao/dsh-snippets'
 
 /** Props for {@link SettingsPage}. */
-export interface SettingsPageProps {
+export interface SettingsBodyProps {
   controller: SnippetsController
   t: T
 }
@@ -143,10 +152,10 @@ function SwitchField({
 }
 
 /**
- * Render the Code Snippets settings page.
- * @param props - see {@link SettingsPageProps}.
+ * Render the Code Snippets settings body.
+ * @param props - see {@link SettingsBodyProps}.
  */
-export function SettingsPage({ controller, t }: SettingsPageProps) {
+export function SettingsBody({ controller, t }: SettingsBodyProps) {
   const config = useConfig(controller)
   const hostState = useHostStatus()
   const failure = useFailureToast(controller, t)
@@ -325,8 +334,6 @@ export function SettingsPage({ controller, t }: SettingsPageProps) {
 
   return (
     <div className={`${PREFIX}-page`}>
-      <p className={`${PREFIX}-intro`}>{t('section.description')}</p>
-
       {hostState.loading ? null : hostReady ? null : (
         <div className={`${PREFIX}-hint`} data-tone="warn">
           <b>{t('host.loopbackOnly')}</b>

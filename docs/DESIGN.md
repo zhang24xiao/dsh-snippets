@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | 交付形态 | 单个 npm 包 `dsh-snippets`，宿主半 + 客户端半 | DSH 插件标准形态；`dsh.client.platform: "web"` 让客户端半被 `__DSH_WEB_PLUGINS__` 扫描进 Web 插件名册 |
 | 数据存储 | **只用官方设置命名空间 `dsh-snippets`** | 直接继承官方 settings 线的鉴权与脱敏；LAN / 隧道场景下不会因为自建接口被未配对设备注入 JS |
-| 界面接入 | `sidebar.footer.action` + `settings.section` 两个插槽 | 前者与 `dsh-remote-web-ui` 的手机图标同排（需求 3）；后者是**独立**设置导航项（需求 2） |
+| 界面接入 | `sidebar.footer.action` + `settings.plugin.item` 两个插槽 | 前者与 `dsh-remote-web-ui` 的手机图标同排（需求 3）；后者是 **设置 → 插件 → 插件配置** 下的插件卡片（需求 2，见 §12.5） |
 | 构建 | esbuild 打包 TSX 源码，产物入库 | 源码可维护、可用 JSX 与 CodeMirror；产物入库后 `github:` 安装无需构建 |
 | 编辑器 | CodeMirror 6（按需裁剪语言包） | 对齐 TCOTC 的编辑器能力（行号 / 高亮 / 括号匹配 / 搜索替换） |
 
@@ -472,6 +472,24 @@ dsh-snippets/
 ├── scripts/build-tests.mjs
 └── test/{entry.ts,host.test.mjs,client.test.mjs}
 ```
+
+### 12.5 设置入口的最终位置（需求 2 的修订）
+
+最初按「独立的设置项」把设置页注册进 `settings.section`，于是它成了设置导航里的一级项
+（通用设置 / 模型 / 插件 / Agent 预设 / 代码片段管理器 / 插件市场）。实机看过后改为放进
+**设置 → 插件 → 插件配置**——也就是其他 host-plane 插件的设置所在的那张卡片列表。
+
+机制是 `settings.plugin.item`：一个**以设置命名空间为 key** 的 keyed 插槽。插件配置这个 tab 会读取
+宿主当前提供的命名空间，然后按命名空间逐个派发 slot key，所以渲染出来的是「宿主注册的命名空间」
+与「注册了卡片的 key」两个清单的交集。本插件宿主半已经注册 `dsh-snippets`，浏览器半用同一个字符串
+注册卡片，配对就完成了——tab 完全不需要知道这个命名空间是什么意思。
+
+卡片外观逐值照抄了邻居（`PluginCard` 模块：圆角 16、半像素描边、表头 padding 14/16、
+15px/600 标题配 13px 说明、内容区 16px 内缩加一条发丝分隔线），否则一行里会看出是「外来户」。
+
+**一处有意的差异**：卡片内容仍是即时生效，没有 Save / Discard。邻居是暂存式表单，而代码片段管理器
+的使用方式就是「拨一下开关、看页面反应」，中间插一个保存会把同一个动作劈成两半。这一点在
+`test/client.test.mjs` 里有展开/收起的交互测试覆盖（默认折叠、点击展开后才渲染分组）。
 
 ### 12.4 验证结果
 

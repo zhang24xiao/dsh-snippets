@@ -19,9 +19,7 @@ The quick toggle sits in the sidebar footer, in the same row as Settings, and op
 
 ![The snippet manager panel, opened from the sidebar footer beside Settings](./assets/screenshot-1-panel.png)
 
-**Settings → Code Snippets** is an independent page in the settings navigation, not a card inside the plugin group:
-
-![The Code Snippets settings page, showing the General and Manager menu groups](./assets/screenshot-2-settings.png)
+**Settings → Plugins → Plugin configuration** carries the card, beside every other plugin's settings:
 
 The editor is CodeMirror 6 — line numbers, CSS/JS highlighting, search and replace — sized to the viewport, with live CSS preview:
 
@@ -33,6 +31,7 @@ The editor is CodeMirror 6 — line numbers, CSS/JS highlighting, search and rep
 
 - CSS / JS tabs with live counts, one master switch per type, and search across
   titles, code, or both
+- Lives with the other plugin settings, in Settings → Plugins → Plugin configuration
 - Add, edit, duplicate, delete, enable/disable, and drag to reorder
 - Ten sort orders (custom, enabled-first, title A→Z / natural, oldest/newest)
 - Per-row edit / duplicate / delete buttons, each individually hideable
@@ -83,7 +82,7 @@ The built `lib/index.js` and `client/client.js` are committed, so a
 | Surface | DSH seat |
 | --- | --- |
 | Quick toggle + manager panel | `sidebar.footer.action`, in the sidebar-foot row beside Settings |
-| Settings page | `settings.section` — an independent navigation entry, not a plugin card |
+| Settings | `settings.plugin.item`, the card list under **Settings → Plugins → Plugin configuration** |
 | Editors, confirmations, toasts | `shell.overlay` |
 | Snippet library | the `dsh-snippets` namespace of the profile's settings document |
 | Backups, Gist token, watcher memory | `$DSH_HOME/dsh-snippets/` |
