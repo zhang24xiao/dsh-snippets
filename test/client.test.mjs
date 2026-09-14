@@ -319,6 +319,10 @@ assert.match(
   'the collapsed-rail layout shim must be in the injected stylesheet',
 )
 assert.match(sheetText, /flex-direction: column/, 'the shim stacks the footer actions vertically')
+// The editor and the KV code spans must follow the shipped code-font token, so
+// a reader's code-font snippet reaches them too.
+assert.doesNotMatch(sheetText, /--dsw-font-mono/, 'there is no --dsw-font-mono token in DSH')
+assert.match(sheetText, /var\(--ds-font-family-code,/, 'code surfaces must read the real code-font token')
 assert.match(
   sheetText,
   /html \[class\*='_footerActions'\] \{\s*gap: 6px/,

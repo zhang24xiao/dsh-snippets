@@ -361,7 +361,7 @@ html [class*='_collapsed'] [class*='_footerActions'] {
 .${PREFIX}-cm .cm-editor { height: 100%; background: transparent; }
 .${PREFIX}-cm .cm-editor.cm-focused { outline: none; }
 .${PREFIX}-cm .cm-scroller {
-  font-family: var(--dsw-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(--ds-font-family-code, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
   line-height: 1.6;
 }
 .${PREFIX}-cm .cm-gutters {
@@ -466,7 +466,7 @@ body[data-ds-dark-theme] .dsn-code-scope {
   padding: 1px 4px;
   border-radius: 4px;
   background: var(--dsw-alias-markdown-inline-code, rgb(0 0 0 / 6%));
-  font-family: var(--dsw-font-mono, ui-monospace, monospace);
+  font-family: var(--ds-font-family-code, ui-monospace, monospace);
   font-size: 11.5px;
   word-break: break-all;
 }
@@ -562,7 +562,7 @@ body[data-ds-dark-theme] .dsn-code-scope {
   line-height: 1.7;
 }
 .${PREFIX}-kv b { color: var(--dsw-alias-label-primary, #0f1115); font-weight: 500; }
-.${PREFIX}-kv code { font-family: var(--dsw-font-mono, ui-monospace, monospace); word-break: break-all; }
+.${PREFIX}-kv code { font-family: var(--ds-font-family-code, ui-monospace, monospace); word-break: break-all; }
 .${PREFIX}-status-dot {
   display: inline-block;
   width: 7px;
