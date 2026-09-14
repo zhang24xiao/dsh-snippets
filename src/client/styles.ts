@@ -42,17 +42,25 @@ export const UI_CSS = `
  * its two icons) and this plugin's icon end up side by side and the icon is
  * pushed out of the rail.
  *
+ * The same shim also restores the row's own rhythm in the wide column. The
+ * neighbouring entry spaces its two buttons 6px apart and 4px apart in the
+ * rail; with no gap on the container a second registrant sits flush against
+ * it, which reads as one crowded cluster rather than two actions.
+ *
  * The attribute-substring selectors are deliberately defensive: they match the
  * shell's CSS-module classes by their readable suffix, so a hash change simply
- * stops the rule from applying (and the rail degrades to the shipped layout)
+ * stops the rules from applying (and the row degrades to the shipped layout)
  * instead of breaking anything. \`html\` raises specificity above the shell's
  * own two-class rule so the outcome does not depend on stylesheet order.
  */
+html [class*='_footerActions'] {
+  gap: 6px;
+}
 html [class*='_collapsed'] [class*='_footerActions'] {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
 }
 
 /* ── the sidebar-foot trigger ──────────────────────────────────────── */
@@ -62,20 +70,24 @@ html [class*='_collapsed'] [class*='_footerActions'] {
  * entries): 附图 1's toolbar button is a bare </> glyph, and the rail has no
  * room for a word. The count lives in the manager panel's footer and in this
  * button's tooltip.
+ *
+ * Geometry is copied from the neighbouring entry's own trigger: a 36px-tall box
+ * in the wide column, so the icon shares the row's optical centre, and a 36px
+ * circle in the rail. A smaller box made the row shorter than its neighbours
+ * and left this icon sitting a few pixels high.
  */
 .${PREFIX}-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  flex: none;
+  height: 36px;
   padding: 0;
   border: 0;
-  border-radius: 7px;
+  border-radius: 8px;
   background: transparent;
   color: var(--dsw-alias-label-secondary, #61666b);
   font: inherit;
-  font-size: 13px;
   line-height: 1;
   cursor: pointer;
   transition: background-color .12s ease, color .12s ease;
@@ -92,7 +104,7 @@ html [class*='_collapsed'] [class*='_footerActions'] {
   outline: 2px solid var(--dsw-alias-brand-primary, #4d6bfe);
   outline-offset: 1px;
 }
-.${PREFIX}-trigger[data-rail='rail'] { width: 30px; height: 30px; }
+.${PREFIX}-trigger[data-rail='rail'] { width: 36px; border-radius: 50%; }
 
 /* ── the manager panel ─────────────────────────────────────────────── */
 

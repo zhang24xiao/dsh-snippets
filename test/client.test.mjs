@@ -313,6 +313,11 @@ assert.match(
   'the collapsed-rail layout shim must be in the injected stylesheet',
 )
 assert.match(sheetText, /flex-direction: column/, 'the shim stacks the footer actions vertically')
+assert.match(
+  sheetText,
+  /html \[class\*='_footerActions'\] \{\s*gap: 6px/,
+  'the wide row keeps the neighbours\' 6px rhythm instead of sitting flush',
+)
 
 const sectionHtml = renderSeat('settings.section')
 for (const group of [

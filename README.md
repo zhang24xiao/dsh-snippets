@@ -76,6 +76,10 @@ The built `lib/index.js` and `client/client.js` are committed, so a
   other footer actions (the update and phone entries) and the `</>` button in
   the SiYuan original. The tooltip carries the name and the live counts; the
   manager panel's footer carries them permanently.
+- The trigger's box is copied from the neighbouring entry's own trigger — 36px
+  tall in the wide column and a 36px circle in the rail — so it shares the row's
+  optical centre and the rail's target size instead of sitting a few pixels high
+  and a few pixels small. Gaps match too: 6px in the wide row, 4px in the rail.
 - The sidebar shell lays the foot out as a column but keeps
   `sidebar.footer.action` a **row** even when the column is collapsed to the
   56px rail. With one action that is invisible; with two, the icons land side by
@@ -83,7 +87,8 @@ The built `lib/index.js` and `client/client.js` are committed, so a
   makes the collapsed row a column again:
 
   ```css
-  html [class*='_collapsed'] [class*='_footerActions'] { flex-direction: column; … }
+  html [class*='_footerActions']             { gap: 6px; }
+  html [class*='_collapsed'] [class*='_footerActions'] { flex-direction: column; gap: 4px; … }
   ```
 
   The attribute-substring selectors are deliberate: if the shell's class hashes

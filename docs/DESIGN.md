@@ -428,6 +428,12 @@ dsh plugin --profile web add link:/mnt/mediaHDD4T/work/dsh-workspace/dsh_plugin/
     并注入一条窄范围规则 `html [class*='_collapsed'] [class*='_footerActions']{flex-direction:column}`。
     该 shim 用属性子串选择器 + `html` 提高优先级，外壳类名变化时只会失效而不会致错；
     `test/client.test.mjs` 断言这条规则确实随样式表下发。
+13. **触发器几何与间距对齐隔壁条目。** 实测反馈「大小间距不同、不协调」。
+    核对 `remote.module.css` 后确认：隔壁条目的触发器在收起态是 **36×36 圆形**、
+    展开态是 **36px 高**，行内间距 6px、轨道内间距 4px；而本插件原来是 28/30px 方角 + 容器无间距。
+    现已改为同款 36px 高度与 36px 圆形热区，并让 shim 同时下发 6px / 4px 间距。
+    `</>` 字形用真实矢量路径与官方图标做了逐像素对照（见 `design/icon-fidelity-preview.png`），
+    笔画粗细 1.4 落在「填充的下载图标」与「描边的电话图标」之间，保持协调。
 12. **运行时的投影时机修正。** 原实现把「同步运行时」塞在 `getConfig` 里，
     而 `getConfig` 是交给 `useSyncExternalStore` 的 `getSnapshot`，React 会在渲染期调用它——
     在渲染期改 DOM、通知 UI store 是副作用。现在 `getConfig` 是纯读取，

@@ -62,11 +62,15 @@ dsh plugin --profile web add link:$PWD/dsh-snippets
 
 - 侧栏底部的开关在**展开与收起两种状态下都只显示图标**，与旁边的下载 / 手机图标一致，
   也与思源原插件的 `</>` 按钮一致。数量信息放在悬停提示里，以及面板底部的常驻文案里。
+- 触发器的盒子尺寸照抄隔壁条目自己的触发器：展开态 36px 高、收起态 36px 圆形热区，
+  这样它与同一行图标共享视觉中线，也与轨道里的热区尺寸一致，不会偏高、偏小。
+  间距也对齐：展开态 6px，收起态 4px。
 - 侧栏外壳把底部区域排成纵向，但 `sidebar.footer.action` 这一行**在收起为 56px 轨道时仍然是横向的**。
   只有一个条目时看不出来，有两个就会并排溢出。因此本插件注入了一条范围很窄的规则，把收起状态下的这一行改回纵向：
 
   ```css
-  html [class*='_collapsed'] [class*='_footerActions'] { flex-direction: column; … }
+  html [class*='_footerActions']             { gap: 6px; }
+  html [class*='_collapsed'] [class*='_footerActions'] { flex-direction: column; gap: 4px; … }
   ```
 
   用属性子串选择器是有意的：外壳的类名哈希一旦变化，这条规则只是不再命中（轨道回到官方布局），
