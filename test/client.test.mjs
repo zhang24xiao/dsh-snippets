@@ -23,6 +23,7 @@ import { createElement } from 'react'
 import * as jsxRuntime from 'react/jsx-runtime'
 import * as react from 'react'
 import * as reactDom from 'react-dom'
+import { renderToStaticMarkup } from 'react-dom/server'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const bundlePath = resolve(here, '..', 'client', 'client.js')
@@ -231,6 +232,61 @@ publish({
   snippets: [{ id: cssId, name: 'probe css', type: 'css', content: 'a{color:red}', enabled: true, created: 1 }],
 })
 assert.equal(document.head.querySelector(`style[data-dsh-snippet="${cssId}"]`).textContent, 'a{color:red}')
+
+/* ── every registered surface must actually render ─────────────────── */
+
+// The cheap half of a live check: SSR runs each component's render path against
+// the same fake controller the runtime test used, so a broken hook order, a
+// missing export or a bad prop shape fails here rather than in the GUI.
+const translate = ctx.locale.bind('snippets')
+const controllerRef = registrations
+  .find((item) => item.options.name === 'settings.section')
+  .options.inject().controller
+
+function renderSeat(seatName, extraProps = {}) {
+  const entry = registrations.find((item) => item.options.name === seatName)
+  assert.ok(entry !== undefined, `${seatName} must be registered`)
+  const injected = entry.options.inject()
+  return renderToStaticMarkup(createElement(entry.component, { ...injected, t: translate, ...extraProps }))
+}
+
+publish({
+  ...snapshotValue,
+  snippets: [
+    { id: cssId, name: 'render probe', type: 'css', content: 'a{}', enabled: true, created: 1 },
+    { id: jsId, name: '', type: 'js', content: 'b()', enabled: false, created: 2 },
+  ],
+})
+
+const footerHtml = renderSeat('sidebar.footer.action', { wide: true })
+assert.match(footerHtml, /aria-haspopup="dialog"/, 'the trigger must advertise its dialog')
+assert.match(footerHtml, /trigger\.open/, 'the trigger needs an accessible name')
+assert.match(footerHtml, /dsn-trigger-count">1</, 'the wide trigger shows how many snippets are enabled')
+
+const railHtml = renderSeat('sidebar.footer.action', { wide: false })
+assert.match(railHtml, /data-rail="rail"/, 'the rail state must be marked for styling')
+
+const sectionHtml = renderSeat('settings.section')
+for (const group of [
+  'group.general', 'group.menu', 'group.editor', 'group.behavior',
+  'group.watch', 'group.data', 'group.gist', 'group.about',
+]) {
+  assert.match(sectionHtml, new RegExp(group), `the settings page must render the ${group} group`)
+}
+assert.match(sectionHtml, /section\.description/)
+assert.match(sectionHtml, /set\.data\.summary/, 'the data group reports the library size')
+
+assert.equal(renderSeat('shell.overlay'), '', 'an empty overlay must contribute no markup')
+
+// A raised confirmation must reach the overlay.
+void controllerRef.confirm({
+  title: 'confirm.clear.title',
+  body: 'confirm.clear.body',
+  confirmLabel: 'action.confirm',
+  cancelLabel: 'action.cancel',
+  tone: 'danger',
+})
+assert.match(renderSeat('shell.overlay'), /confirm\.clear\.body/, 'a pending confirmation must render')
 
 /* ── teardown ──────────────────────────────────────────────────────── */
 

@@ -444,6 +444,10 @@ dsh-snippets/
 - `npm run check`：`tsc --noEmit` 通过；两个 bundle 构建通过；
   `test/host.test.mjs` 与 `test/client.test.mjs` 全部通过。
 - 客户端测试覆盖需求 1 的核心链路：启用的 CSS 片段恰好产生一个 `<style>`、
-  启用的 JS 片段恰好执行一次、停用只移除对应元素、类型总开关拦截注入、卸载后无残留。
+  启用的 JS 片段恰好执行一次、停用只移除对应元素、类型总开关拦截注入、卸载后无残留；
+  并对三个已注册席位（`sidebar.footer.action` / `settings.section` / `shell.overlay`）做服务端渲染。
+  这一步在实现期抓到了一个真实缺陷：`Observable.get` 原本是原型方法，
+  作为裸引用传给 `useSyncExternalStore` 时 `this` 丢失，会让插件在浏览器里完全无法渲染；
+  现已改为箭头属性。
 - 宿主测试覆盖：命名空间注册、9 条路由的 loopback 围栏、备份、文件夹镜像（含跨扫描 ID 稳定）、
   Gist 三种导入模式、内容校验、格式化安全性。

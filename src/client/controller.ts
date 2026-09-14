@@ -31,10 +31,15 @@ export class Observable<T> {
     this.current = initial
   }
 
-  /** The current value; stable between changes, so it is `useSyncExternalStore`-safe. */
-  get(): T {
-    return this.current
-  }
+  /**
+   * The current value; stable between changes, so it is
+   * `useSyncExternalStore`-safe.
+   *
+   * Declared as an arrow property rather than a prototype method: it is handed
+   * to `useSyncExternalStore` as a bare reference, and a prototype method would
+   * arrive with `this` undefined and throw on the first render.
+   */
+  readonly get = (): T => this.current
 
   /** Replace the value and notify, or update it from the previous value. */
   set(next: T | ((previous: T) => T)): void {

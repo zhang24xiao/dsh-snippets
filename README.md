@@ -125,7 +125,9 @@ pnpm run watch     # rebuild on change
   `window.__ModuleLoader__.load` in jsdom and drives the runtime: an enabled CSS
   snippet produces exactly one `<style>`, an enabled JS snippet runs exactly
   once, disabling removes only that element, the type master switch gates
-  injection, and teardown leaves nothing behind.
+  injection, and teardown leaves nothing behind. It then server-renders all
+  three registered seats, so a broken render path fails here rather than in the
+  GUI.
 
 ## License
 
