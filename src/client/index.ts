@@ -88,7 +88,8 @@ export function apply(ctx: ClientContext): void {
   // preview element and the applied snippets themselves.
   ctx.effect(() => () => { controller.dispose() }, 'dsh-snippets: runtime teardown')
 
-  const t = ctx.locale.bind(NS)
+  // No bound `t` here: every seat declares `locale: NS`, and the render
+  // machinery synthesizes the typed `t` seat for each component from that.
 
   /* ── the sidebar-foot quick toggle ──────────────────────────────── */
 
