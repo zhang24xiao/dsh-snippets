@@ -434,6 +434,12 @@ dsh plugin --profile web add link:/mnt/mediaHDD4T/work/dsh-workspace/dsh_plugin/
     现已改为同款 36px 高度与 36px 圆形热区，并让 shim 同时下发 6px / 4px 间距。
     `</>` 字形用真实矢量路径与官方图标做了逐像素对照（见 `design/icon-fidelity-preview.png`），
     笔画粗细 1.4 落在「填充的下载图标」与「描边的电话图标」之间，保持协调。
+14. **宽度修正（第二轮）。** 第一次只对齐了高度，漏掉了 `[data-wide='wide']` 里的
+    `padding: 0 10px` 与 `border-radius: 999px`——这两条才是让「16px 字形 + 20px 内边距 = 36px 盒子」
+    的关键。少了内边距，展开态触发器只有 16px 宽，悬停时成了一条竖长药丸，
+    与隔壁 36px 圆形热区并列非常刺眼。现在基础规则即 36×36 圆形（收起态），
+    展开态仅追加 `width:auto / radius 999px / padding 0 10px`，两者悬停面完全一致。
+    `test/client.test.mjs` 同时断言 `data-wide` / `data-rail` 标记与这条几何规则随样式表下发。
 12. **运行时的投影时机修正。** 原实现把「同步运行时」塞在 `getConfig` 里，
     而 `getConfig` 是交给 `useSyncExternalStore` 的 `getSnapshot`，React 会在渲染期调用它——
     在渲染期改 DOM、通知 UI store 是副作用。现在 `getConfig` 是纯读取，

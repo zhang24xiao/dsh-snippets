@@ -71,20 +71,27 @@ html [class*='_collapsed'] [class*='_footerActions'] {
  * room for a word. The count lives in the manager panel's footer and in this
  * button's tooltip.
  *
- * Geometry is copied from the neighbouring entry's own trigger: a 36px-tall box
- * in the wide column, so the icon shares the row's optical centre, and a 36px
- * circle in the rail. A smaller box made the row shorter than its neighbours
- * and left this icon sitting a few pixels high.
+ * Geometry is copied field for field from the neighbouring entry's own trigger,
+ * because the two sit in one row and their hover surfaces have to agree:
+ *
+ *   base (collapsed rail)  36x36, border-radius 50%   -> a circle
+ *   [data-wide='wide']     padding 0 10px, radius 999px
+ *
+ * The wide padding is what makes the box 36px wide around a 16px glyph, so both
+ * actions present the same circle and the same 36px hover surface. Omitting it
+ * left this trigger 16px wide, which read as a narrow vertical pill next to the
+ * neighbour's circle.
  */
 .${PREFIX}-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
+  width: 36px;
   height: 36px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 50%;
   background: transparent;
   color: var(--dsw-alias-label-secondary, #61666b);
   font: inherit;
@@ -104,7 +111,11 @@ html [class*='_collapsed'] [class*='_footerActions'] {
   outline: 2px solid var(--dsw-alias-brand-primary, #4d6bfe);
   outline-offset: 1px;
 }
-.${PREFIX}-trigger[data-rail='rail'] { width: 36px; border-radius: 50%; }
+.${PREFIX}-trigger[data-wide='wide'] {
+  width: auto;
+  border-radius: 999px;
+  padding: 0 10px;
+}
 
 /* ── the manager panel ─────────────────────────────────────────────── */
 

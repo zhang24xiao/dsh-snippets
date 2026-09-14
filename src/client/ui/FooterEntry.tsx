@@ -70,6 +70,7 @@ export function FooterEntry({ controller, t, wide }: FooterEntryProps) {
         ref={anchorRef}
         type="button"
         className={`${PREFIX}-trigger`}
+        data-wide={wide ? 'wide' : undefined}
         data-rail={wide ? undefined : 'rail'}
         aria-label={t('trigger.open')}
         aria-haspopup="dialog"

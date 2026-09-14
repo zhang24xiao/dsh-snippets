@@ -76,10 +76,12 @@ The built `lib/index.js` and `client/client.js` are committed, so a
   other footer actions (the update and phone entries) and the `</>` button in
   the SiYuan original. The tooltip carries the name and the live counts; the
   manager panel's footer carries them permanently.
-- The trigger's box is copied from the neighbouring entry's own trigger — 36px
-  tall in the wide column and a 36px circle in the rail — so it shares the row's
-  optical centre and the rail's target size instead of sitting a few pixels high
-  and a few pixels small. Gaps match too: 6px in the wide row, 4px in the rail.
+- The trigger's box is copied field for field from the neighbouring entry's own
+  trigger, so the two hover surfaces agree: `36×36` with `border-radius: 50%` in
+  the rail, and in the wide row `padding: 0 10px` with `border-radius: 999px`.
+  That padding is what makes the wide box 36px around a 16px glyph — without it
+  the box is 16px wide and reads as a narrow vertical pill beside the
+  neighbour's circle. Gaps match too: 6px in the wide row, 4px in the rail.
 - The sidebar shell lays the foot out as a column but keeps
   `sidebar.footer.action` a **row** even when the column is collapsed to the
   56px rail. With one action that is invisible; with two, the icons land side by

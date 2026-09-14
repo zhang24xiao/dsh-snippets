@@ -289,8 +289,14 @@ assert.equal(
 const wideTitle = /title="([^"]*)"/.exec(footerHtml)?.[1] ?? ''
 assert.notEqual(wideTitle, 'trigger.open', 'the tooltip reports counts once snippets are enabled')
 
+// The two column states must be marked distinctly: the wide trigger adds the
+// 10px padding that makes its hover surface the same 36px circle as the rail's.
+assert.match(footerHtml, /data-wide="wide"/, 'the wide state must be marked for styling')
+assert.doesNotMatch(footerHtml, /data-rail="rail"/, 'the wide state must not carry the rail marker')
+
 const railHtml = renderSeat('sidebar.footer.action', { wide: false })
 assert.match(railHtml, /data-rail="rail"/, 'the rail state must be marked for styling')
+assert.doesNotMatch(railHtml, /data-wide="wide"/, 'the rail state must not carry the wide marker')
 
 // …and with nothing enabled it falls back to the plain action label.
 publish({ ...snapshotValue, snippets: [] })
@@ -317,6 +323,13 @@ assert.match(
   sheetText,
   /html \[class\*='_footerActions'\] \{\s*gap: 6px/,
   'the wide row keeps the neighbours\' 6px rhythm instead of sitting flush',
+)
+// The wide trigger must keep the neighbour's 10px padding: without it the box
+// is 16px wide and its hover surface becomes a narrow vertical pill.
+assert.match(
+  sheetText,
+  /\[data-wide='wide'\] \{\s*width: auto;\s*border-radius: 999px;\s*padding: 0 10px;/,
+  'the wide trigger must reproduce the neighbour\'s 36px pill geometry',
 )
 
 const sectionHtml = renderSeat('settings.section')
