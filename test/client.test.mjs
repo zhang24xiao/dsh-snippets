@@ -332,9 +332,13 @@ assert.doesNotMatch(sheetText, /--dsw-font-mono/, 'there is no --dsw-font-mono t
 assert.match(sheetText, /var\(--ds-font-family-code,/, 'code surfaces must read the real code-font token')
 assert.match(
   sheetText,
-  /html \[class\*='_footerActions'\] \{\s*gap: 6px/,
+  /html \[class\*='_footerActions'\] \{[^}]*gap: 6px/,
   'the wide row keeps the neighbours\' 6px rhythm instead of sitting flush',
 )
+// A shared row seat must wrap: a wide third-party entry would otherwise push
+// this plugin's icon past the edge, where the sidebar's overflow hides it.
+assert.match(sheetText, /html \[class\*='_footerActions'\] \{[^}]*flex-wrap: wrap/, 'the row must be allowed to wrap')
+assert.match(sheetText, /\.dsn-entry\s*\{[^}]*flex: none/, 'the entry must not be squashed in a crowded row')
 // The wide trigger must keep the neighbour's 10px padding: without it the box
 // is 16px wide and its hover surface becomes a narrow vertical pill.
 assert.match(

@@ -26,10 +26,15 @@ export const STYLE_ATTRIBUTE = 'data-dsh-snippets-ui'
 
 /** The full stylesheet. */
 export const UI_CSS = `
+/*
+ * flex: none on purpose: a shrinkable entry in a crowded row would be squeezed
+ * below its button's 36px instead of wrapping to the next line, and an icon
+ * squeezed to nothing is worse than an icon on a second row.
+ */
 .${PREFIX}-entry {
   display: flex;
   align-items: center;
-  min-width: 0;
+  flex: none;
 }
 
 /* ── the collapsed-rail layout shim ───────────────────────────────── */
@@ -55,6 +60,15 @@ export const UI_CSS = `
  */
 html [class*='_footerActions'] {
   gap: 6px;
+  /*
+   * The row must be allowed to WRAP. It is a shared seat: this plugin puts a
+   * 36px circle in it, dsh-remote-web-ui puts two icons in it, and a cost or
+   * status widget can put a text block several hundred pixels wide in it — all
+   * inside a 240px column that the shell never wraps. Without this, the widest
+   * entry pushes the icons past the edge and the sidebar's overflow clips them
+   * out of reach, which is exactly what a cost widget did here.
+   */
+  flex-wrap: wrap;
 }
 html [class*='_collapsed'] [class*='_footerActions'] {
   flex-direction: column;
