@@ -13,6 +13,20 @@ preferences. Enabled **CSS** is injected into the page immediately; enabled
 
 [简体中文](./README.zh-CN.md)
 
+## Screenshots
+
+The quick toggle sits in the sidebar footer, in the same row as Settings, and opens the manager panel:
+
+![The snippet manager panel, opened from the sidebar footer beside Settings](./assets/screenshot-1-panel.png)
+
+**Settings → Code Snippets** is an independent page in the settings navigation, not a card inside the plugin group:
+
+![The Code Snippets settings page, showing the General and Manager menu groups](./assets/screenshot-2-settings.png)
+
+The editor is CodeMirror 6 — line numbers, CSS/JS highlighting, search and replace — sized to the viewport, with live CSS preview:
+
+![The snippet editor, showing a CSS snippet with syntax highlighting](./assets/screenshot-3-editor.png)
+
 ## Features
 
 **Managing snippets**

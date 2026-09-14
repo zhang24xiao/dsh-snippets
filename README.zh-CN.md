@@ -9,6 +9,20 @@
 
 [English](./README.md)
 
+## 截图
+
+快捷开关就在侧栏底部、与「设置」同一排，点开是管理面板：
+
+![从侧栏底部打开的代码片段管理面板](./assets/screenshot-1-panel.png)
+
+**设置 → 代码片段管理器** 是设置导航里的独立一项，不是插件分组下的卡片：
+
+![代码片段管理器设置页，可见「通用」与「管理菜单」两组](./assets/screenshot-2-settings.png)
+
+编辑器是 CodeMirror 6 —— 行号、CSS/JS 高亮、搜索替换 —— 按视口自适应，并支持 CSS 实时预览：
+
+![代码片段编辑器，正在编辑一段 CSS 并带语法高亮](./assets/screenshot-3-editor.png)
+
 ## 功能
 
 **管理代码片段**
