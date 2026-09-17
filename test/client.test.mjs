@@ -265,14 +265,19 @@ const footerHtml = renderSeat('sidebar.footer.action', { wide: true })
 assert.match(footerHtml, /aria-haspopup="dialog"/, 'the trigger must advertise its dialog')
 assert.match(footerHtml, /aria-label="trigger\.open"/, 'the trigger needs a stable accessible name')
 
-// Icon-only, matching the neighbouring footer actions: the button must contain
-// exactly one glyph and no text node.
+// The wide row carries its name, exactly like the Settings row it sits under:
+// one glyph plus the localized label, and nothing else.
 const buttonInner = /<button[^>]*>([\s\S]*?)<\/button>/.exec(footerHtml)?.[1] ?? ''
 assert.equal((buttonInner.match(/<svg/g) ?? []).length, 1, 'the trigger draws exactly one glyph')
 assert.equal(
-  buttonInner.replace(/<svg[\s\S]*?<\/svg>/, '').trim(),
-  '',
-  'the trigger must render no label or badge, only the icon',
+  buttonInner.replace(/<svg[\s\S]*?<\/svg>/, '').replace(/<[^>]*>/g, '').trim(),
+  'trigger.label',
+  'the wide trigger labels itself with the snippet name',
+)
+assert.match(
+  buttonInner,
+  /<span class="dsn-trigger-label">/,
+  'the wide label rides the class the stylesheet sizes',
 )
 
 // The trigger draws its own `</>` mark: the shared icon set's nearest
@@ -288,18 +293,25 @@ assert.equal(
   'the code glyph is the three-stroke </> mark',
 )
 
-// The tooltip carries what the dropped label used to say.
+// The tooltip still carries the live counts the row's label has no space for.
 const wideTitle = /title="([^"]*)"/.exec(footerHtml)?.[1] ?? ''
 assert.notEqual(wideTitle, 'trigger.open', 'the tooltip reports counts once snippets are enabled')
 
-// The two column states must be marked distinctly: the wide trigger adds the
-// 10px padding that makes its hover surface the same 36px circle as the rail's.
+// The two column states must be marked distinctly: the wide trigger is the
+// full-width labelled row, the rail stays a bare circle.
 assert.match(footerHtml, /data-wide="wide"/, 'the wide state must be marked for styling')
 assert.doesNotMatch(footerHtml, /data-rail="rail"/, 'the wide state must not carry the rail marker')
 
 const railHtml = renderSeat('sidebar.footer.action', { wide: false })
 assert.match(railHtml, /data-rail="rail"/, 'the rail state must be marked for styling')
 assert.doesNotMatch(railHtml, /data-wide="wide"/, 'the rail state must not carry the wide marker')
+// The rail has no room for a word, so it must render the glyph alone.
+const railButtonInner = /<button[^>]*>([\s\S]*?)<\/button>/.exec(railHtml)?.[1] ?? ''
+assert.equal(
+  railButtonInner.replace(/<svg[\s\S]*?<\/svg>/, '').trim(),
+  '',
+  'the rail trigger must render no label, only the icon',
+)
 
 // …and with nothing enabled it falls back to the plain action label.
 publish({ ...snapshotValue, snippets: [] })
@@ -339,12 +351,34 @@ assert.match(
 // this plugin's icon past the edge, where the sidebar's overflow hides it.
 assert.match(sheetText, /html \[class\*='_footerActions'\] \{[^}]*flex-wrap: wrap/, 'the row must be allowed to wrap')
 assert.match(sheetText, /\.dsn-entry\s*\{[^}]*flex: none/, 'the entry must not be squashed in a crowded row')
-// The wide trigger must keep the neighbour's 10px padding: without it the box
-// is 16px wide and its hover surface becomes a narrow vertical pill.
+// The wide trigger copies the Settings row's geometry field for field: the same
+// 4px side bleed on the entry, the same 42px height, and the `0 10px 0 8px`
+// padding that lands the glyph on the Settings glyph's own column.
 assert.match(
   sheetText,
-  /\[data-wide='wide'\] \{\s*width: auto;\s*border-radius: 999px;\s*padding: 0 10px;/,
-  'the wide trigger must reproduce the neighbour\'s 36px pill geometry',
+  /\.dsn-entry\[data-wide='wide'\] \{\s*width: calc\(100% \+ 4px\);\s*margin: 4px -2px;/,
+  'the wide entry takes the whole row with the Settings row\'s side bleed',
+)
+assert.match(
+  sheetText,
+  /\.dsn-trigger\[data-wide='wide'\] \{[^}]*height: 42px;[^}]*padding: 0 10px 0 8px;/,
+  'the wide trigger reproduces the Settings row geometry',
+)
+assert.match(
+  sheetText,
+  /\.dsn-trigger\[data-wide='wide'\] \{[^}]*gap: 8px;/,
+  'the glyph-to-label gap must match the Settings row',
+)
+assert.match(
+  sheetText,
+  /\.dsn-trigger-label \{[^}]*text-overflow: ellipsis/,
+  'a very narrow sidebar must ellipsize the label rather than overflow',
+)
+// The rail keeps the Settings rail row's own rhythm around the circle.
+assert.match(
+  sheetText,
+  /\.dsn-trigger \{[^}]*margin: 8px 0 10px/,
+  'the rail trigger keeps the Settings rail row\'s margin',
 )
 // The shipped Modal card is `min(380px, 100%)` with no height cap: right for a
 // two-field form, but a long snippet overflows the window and takes the close

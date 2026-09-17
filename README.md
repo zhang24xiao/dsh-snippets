@@ -2,8 +2,9 @@
 
 CSS and JS code snippets for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) web GUI.
 
-A quick toggle in the sidebar footer beside **Settings** opens a manager panel —
-the same seat `@linxin666/dsh-remote-web-ui` uses for its phone entry — and
+A full-width quick toggle in the sidebar footer, aligned column for column with
+the **Settings** row above it (a `</>` glyph on the left, the name on the right),
+opens a manager panel, and
 **Settings → Code Snippets** is an independent page with the full set of
 preferences. Enabled **CSS** is injected into the page immediately; enabled
 **JS** runs after the page loads.
@@ -15,7 +16,7 @@ preferences. Enabled **CSS** is injected into the page immediately; enabled
 
 ## Screenshots
 
-The quick toggle sits in the sidebar footer, in the same row as Settings, and opens the manager panel:
+The quick toggle fills a whole row of the sidebar footer, exactly like Settings, and opens the manager panel:
 
 ![The snippet manager panel, opened from the sidebar footer beside Settings](./assets/screenshot-1-panel.png)
 
@@ -81,7 +82,7 @@ The built `lib/index.js` and `client/client.js` are committed, so a
 
 | Surface | DSH seat |
 | --- | --- |
-| Quick toggle + manager panel | `sidebar.footer.action`, in the sidebar-foot row beside Settings |
+| Quick toggle + manager panel | `sidebar.footer.action`, a full-width row: `</>` glyph + the name |
 | Settings | `settings.plugin.item`, the card list under **Settings → Plugins → Plugin configuration** |
 | Editors, confirmations, toasts | `shell.overlay` |
 | Snippet library | the `dsh-snippets` namespace of the profile's settings document |
@@ -89,24 +90,31 @@ The built `lib/index.js` and `client/client.js` are committed, so a
 
 ## Layout notes
 
-- The sidebar-foot trigger is **icon-only** in both column states, matching the
-  other footer actions (the update and phone entries) and the `</>` button in
-  the SiYuan original. The tooltip carries the name and the live counts; the
-  manager panel's footer carries them permanently.
-- The trigger's box is copied field for field from the neighbouring entry's own
-  trigger, so the two hover surfaces agree: `36×36` with `border-radius: 50%` in
-  the rail, and in the wide row `padding: 0 10px` with `border-radius: 999px`.
-  That padding is what makes the wide box 36px around a 16px glyph — without it
-  the box is 16px wide and reads as a narrow vertical pill beside the
-  neighbour's circle. Gaps match too: 6px in the wide row, 4px in the rail.
+- The sidebar-foot trigger follows the column width in two shapes, and both are
+  measured against the **Settings** row:
+  - **wide** is one whole row: 42px tall, `padding: 0 10px 0 8px`, an 8px gap
+    between glyph and label, radius 12, 14px/22px type — the Settings row's own
+    numbers, field for field, which is what lands both rows' glyphs and labels
+    on one column;
+  - **rail** is a bare `36×36` circle with `margin: 8px 0 10px`, matching the
+    circle in Settings' own rail row.
+
+  The wide row's label carries the name; the tooltip still reports the total
+  and enabled counts.
+- That 4px side bleed in the wide state (`width: calc(100% + 4px);
+  margin: 4px -2px`) is copied from the Settings row's own container. Without
+  it this row sits 2px to the right of Settings — that 2px *is* the alignment.
 - The sidebar shell lays the foot out as a column but keeps
   `sidebar.footer.action` a **row** even when the column is collapsed to the
   56px rail. With one action that is invisible; with two, the icons land side by
   side and overflow. This plugin therefore injects one narrowly scoped rule that
-  makes the collapsed row a column again:
+  makes the collapsed row a column again — and lets the wide row **wrap**,
+  because the seat is shared: a full-width entry (this plugin, or `dsh-mobile`'s
+  phone entry) would otherwise push its neighbour past the sidebar edge, where
+  the shell's overflow hides it:
 
   ```css
-  html [class*='_footerActions']             { gap: 6px; }
+  html [class*='_footerActions']             { gap: 6px; flex-wrap: wrap; }
   html [class*='_collapsed'] [class*='_footerActions'] { flex-direction: column; gap: 4px; … }
   ```
 

@@ -30,11 +30,21 @@ export const UI_CSS = `
  * flex: none on purpose: a shrinkable entry in a crowded row would be squeezed
  * below its button's 36px instead of wrapping to the next line, and an icon
  * squeezed to nothing is worse than an icon on a second row.
+ *
+ * The wide state takes the whole row. Its 4px side bleed is copied from the
+ * Settings row itself ('width: calc(100% + 4px); margin: 4px -2px' on its
+ * triggerRow), so the settings glyph and the snippet glyph land on one left
+ * edge instead of sitting 2px apart — which is the whole point of matching
+ * that row rather than only its height.
  */
 .${PREFIX}-entry {
   display: flex;
   align-items: center;
   flex: none;
+}
+.${PREFIX}-entry[data-wide='wide'] {
+  width: calc(100% + 4px);
+  margin: 4px -2px;
 }
 
 /* ── the collapsed-rail layout shim ───────────────────────────────── */
@@ -80,29 +90,27 @@ html [class*='_collapsed'] [class*='_footerActions'] {
 /* ── the sidebar-foot trigger ──────────────────────────────────────── */
 
 /*
- * Icon-only, matching the neighbouring footer actions (the update and phone
- * entries): 附图 1's toolbar button is a bare </> glyph, and the rail has no
- * room for a word. The count lives in the manager panel's footer and in this
- * button's tooltip.
+ * One control, two column states, both measured against the Settings row that
+ * closes the same foot — because those two rows are what the eye compares:
  *
- * Geometry is copied field for field from the neighbouring entry's own trigger,
- * because the two sit in one row and their hover surfaces have to agree:
+ *   wide   42px tall, full width, radius 12, padding '0 10px 0 8px',
+ *          icon + 8px gap + 14px/22px label  ← identical to Settings
+ *   rail   36x36 circle, margin '8px 0 10px'  ← identical to Settings' rail row
  *
- *   base (collapsed rail)  36x36, border-radius 50%   -> a circle
- *   [data-wide='wide']     padding 0 10px, radius 999px
- *
- * The wide padding is what makes the box 36px wide around a 16px glyph, so both
- * actions present the same circle and the same 36px hover surface. Omitting it
- * left this trigger 16px wide, which read as a narrow vertical pill next to the
- * neighbour's circle.
+ * The wide padding is the one number that does the alignment work: 8px puts
+ * the glyph on the Settings glyph's own column, and the trailing 10px keeps
+ * the label clear of the sidebar's right edge. The base rule below is the rail
+ * geometry; the [data-wide='wide'] block overrides it field by field.
  */
 .${PREFIX}-trigger {
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
   width: 36px;
   height: 36px;
+  margin: 8px 0 10px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -126,9 +134,24 @@ html [class*='_collapsed'] [class*='_footerActions'] {
   outline-offset: 1px;
 }
 .${PREFIX}-trigger[data-wide='wide'] {
-  width: auto;
-  border-radius: 999px;
-  padding: 0 10px;
+  justify-content: flex-start;
+  width: 100%;
+  height: 42px;
+  margin: 0;
+  padding: 0 10px 0 8px;
+  border-radius: 12px;
+  gap: 8px;
+  color: var(--dsw-alias-label-primary, #0f1115);
+  font-size: 14px;
+  line-height: 22px;
+  overflow: hidden;
+}
+/* The label yields first when the sidebar is dragged very narrow. */
+.${PREFIX}-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* ── the manager panel ─────────────────────────────────────────────── */
