@@ -59,6 +59,7 @@ api() {
   curl -sS \
     -H "Authorization: Bearer ${GH_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
+    -H "Content-Type: application/json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
     "$@"
 }
@@ -83,14 +84,36 @@ require_auth() {
 }
 
 say "[0/6] 校验 token ..."
-me="$(api -o "${WORKDIR}/me.json" -w '%{http_code}' "${API}/user" || echo 000)"
-require_auth "${me}"
-[ "${me}" = "200" ] || die "校验 token 时 GitHub 返回 ${me}，无法继续。"
+me_code="$(curl -sS -o "${WORKDIR}/me.json" -D "${WORKDIR}/me.headers" -w '%{http_code}' \
+  -H "Authorization: Bearer ${GH_TOKEN}" \
+  -H "Accept: application/vnd.github+json" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  "${API}/user" 2>/dev/null || echo 000)"
+require_auth "${me_code}"
+[ "${me_code}" = "200" ] || die "校验 token 时 GitHub 返回 ${me_code}，无法继续。"
 login="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("login","?"))' "${WORKDIR}/me.json" 2>/dev/null || echo '?')"
 say "      已认证为 ${login}"
 if [ "${login}" != "${FORK_OWNER}" ]; then
   say "      注意：认证身份是 ${login}，但脚本会往 ${FORK_OWNER} 的 fork 推送。"
   say "      如果这不是你预期的账号，请中止（Ctrl-C）后换成对应账号的 token。"
+fi
+
+# classic PAT 会回 x-oauth-scopes 头，fine-grained PAT 没有这个头。这个区别很
+# 要紧：fine-grained PAT 只能授权给你自己或你所属组织的仓库，覆盖不到别人的仓库，
+# 而最后一步要往 upstream 建 PR —— 那种情况下 GitHub 只会回一个 404。提前讲清楚，
+# 省得推到一半才发现。
+if grep -qi '^x-oauth-scopes:' "${WORKDIR}/me.headers"; then
+  scopes="$(grep -i '^x-oauth-scopes:' "${WORKDIR}/me.headers" | head -1 | cut -d: -f2- | tr -d ' \r')"
+  say "      token 类型：classic（scopes:${scopes:-（空）}）"
+  case ",${scopes}," in
+    *,public_repo,*|*,repo,*) : ;;
+    *) say "      注意：scopes 里没有 public_repo，最后一步建 PR 可能被拒。" ;;
+  esac
+else
+  say "      token 类型：fine-grained"
+  say "      注意：fine-grained PAT 只能授权给你自己或你所属组织的仓库，无法在"
+  say "            ${UPSTREAM} 上建 PR。如果最后一步报 404，请改用 classic PAT"
+  say "            并勾上 public_repo；或者分支推上去后直接用浏览器建 PR。"
 fi
 
 say "[1/6] 确认 ${FORK_OWNER}/awesome-dsh-plugin 这个 fork ..."
@@ -253,6 +276,20 @@ PY
       say "创建 PR 被拒（422）：${msg}"
       exit 1
     fi
+    ;;
+  404)
+    # GitHub 对「token 无权在目标仓库建 PR」和「head/base 解析不到」都回 404，
+    # 所以这里没法只靠状态码区分，两种可能都讲清楚。
+    say ""
+    say "创建 PR 返回 404。GitHub 对下列情况都报 404："
+    say "  1) token 无权在 ${UPSTREAM} 上建 PR。若你用的是 fine-grained PAT："
+    say "     它只能授权给你自己（或你所属组织）的仓库，覆盖不到别人的仓库，"
+    say "     这种情况请改用 classic PAT 并勾上 public_repo。"
+    say "  2) head/base 分支解析不到（head=${FORK_OWNER}:${BRANCH}，base=${BASE_BRANCH}）。"
+    say ""
+    say "无论哪种，分支都已经推上去了。用浏览器登录态建 PR 最快，一步到位："
+    say "  https://github.com/${FORK_OWNER}/awesome-dsh-plugin/pull/new/${BRANCH}"
+    exit 1
     ;;
   *) die "创建 PR 时 GitHub 返回 ${pr_code}，已中止。响应：$(head -c 400 "${WORKDIR}/pr-response.json" 2>/dev/null)" ;;
 esac
