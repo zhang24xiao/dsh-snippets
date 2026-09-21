@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | 交付形态 | 单个 npm 包 `dsh-snippets`，宿主半 + 客户端半 | DSH 插件标准形态；`dsh.client.platform: "web"` 让客户端半被 `__DSH_WEB_PLUGINS__` 扫描进 Web 插件名册 |
 | 数据存储 | **只用官方设置命名空间 `dsh-snippets`** | 直接继承官方 settings 线的鉴权与脱敏；LAN / 隧道场景下不会因为自建接口被未配对设备注入 JS |
-| 界面接入 | `sidebar.footer.action` + `settings.plugin.item` 两个插槽 | 前者与 `dsh-remote-web-ui` 的手机图标同排（需求 3）；后者是 **设置 → 插件 → 插件配置** 下的插件卡片（需求 2，见 §12.5） |
+| 界面接入 | `sidebar.footer.action` + `settings.section` 两个插槽 | 前者与 `dsh-remote-web-ui` 的手机图标同排（需求 3）；后者是设置导航里的独立设置页（需求 2，见 §12.5） |
 | 构建 | esbuild 打包 TSX 源码，产物入库 | 源码可维护、可用 JSX 与 CodeMirror；产物入库后 `github:` 安装无需构建 |
 | 编辑器 | CodeMirror 6（按需裁剪语言包） | 对齐 TCOTC 的编辑器能力（行号 / 高亮 / 括号匹配 / 搜索替换） |
 
@@ -473,23 +473,28 @@ dsh-snippets/
 └── test/{entry.ts,host.test.mjs,client.test.mjs}
 ```
 
-### 12.5 设置入口的最终位置（需求 2 的修订）
+### 12.5 设置入口的最终位置（需求 2 的两次修订）
 
-最初按「独立的设置项」把设置页注册进 `settings.section`，于是它成了设置导航里的一级项
-（通用设置 / 模型 / 插件 / Agent 预设 / 代码片段管理器 / 插件市场）。实机看过后改为放进
-**设置 → 插件 → 插件配置**——也就是其他 host-plane 插件的设置所在的那张卡片列表。
+设置页最初注册进 `settings.section`，是设置导航里的一级项。实机看过后改为放进
+**设置 → 插件 → 插件配置** 那张卡片列表，机制是 `settings.plugin.item`——一个**以设置命名空间
+为 key** 的 keyed 插槽：宿主半已经注册 `dsh-snippets`，浏览器半用同一个字符串注册卡片，配对即完成。
 
-机制是 `settings.plugin.item`：一个**以设置命名空间为 key** 的 keyed 插槽。插件配置这个 tab 会读取
-宿主当前提供的命名空间，然后按命名空间逐个派发 slot key，所以渲染出来的是「宿主注册的命名空间」
-与「注册了卡片的 key」两个清单的交集。本插件宿主半已经注册 `dsh-snippets`，浏览器半用同一个字符串
-注册卡片，配对就完成了——tab 完全不需要知道这个命名空间是什么意思。
+**2026-09-21：该机制在 DSH 0.1.6-alpha.2 上失效，设置入口回退到 `settings.section`。**
+新版本不再声明 `settings.plugin.item` 这个席位（`ui-settings-plugins` 的产物里它出现 0 次，
+取代它的是 `plugins.item`，而后者是**官方插件专用**的 list 插槽，其类型契约明确写着第三方 bundle
+的配置应该改用 `plugins.bundle.config` 或 `plugins.row.config`）。对已经不存在的席位做
+`slots.inject` 不会报错，只是回调永远不触发——于是设置界面里这一项**静默消失**，而
+`~/.dsh/settings.yaml` 里 `dsh-snippets` 命名空间的数据始终完好。这个「静默」是设计如此：
+未被声明或无人认领的席位会被直接丢弃，而不是当成错误。
 
-卡片外观逐值照抄了邻居（`PluginCard` 模块：圆角 16、半像素描边、表头 padding 14/16、
-15px/600 标题配 13px 说明、内容区 16px 内缩加一条发丝分隔线），否则一行里会看出是「外来户」。
+回退后的形态：设置面板的左导航按 registrant 渲染一个条目，并把内容挂进内容列。外壳不提供任何
+文案与容器，所以页面自己拥有标题与描述（`.dsn-settings-title` / `.dsn-settings-desc`），其下
+仍是 `SettingsBody` 的分组。导航标签在注册时读一次，所以语言切换靠**重新注册**实现，而不是让
+外壳订阅 locale 状态。
 
-**一处有意的差异**：卡片内容仍是即时生效，没有 Save / Discard。邻居是暂存式表单，而代码片段管理器
-的使用方式就是「拨一下开关、看页面反应」，中间插一个保存会把同一个动作劈成两半。这一点在
-`test/client.test.mjs` 里有展开/收起的交互测试覆盖（默认折叠、点击展开后才渲染分组）。
+**一处有意的差异**：页面内容仍是即时生效，没有 Save / Discard。邻居是暂存式表单，而代码片段
+管理器的使用方式就是「拨一下开关、看页面反应」，中间插一个保存会把同一个动作劈成两半。
+`test/client.test.mjs` 会把整页渲染进真实 DOM，断言标题、描述与八个分组都在。
 
 ### 12.4 验证结果
 

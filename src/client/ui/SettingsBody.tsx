@@ -2,20 +2,18 @@
  * The settings body: every preference, grouped the way the SiYuan original's
  * dialog groups them.
  *
- * Rendered inside this plugin's card in **Settings → Plugins → Plugin
- * configuration** (`PluginSettingsCard`), which is the seat every other
- * host-plane plugin's settings live in. The card owns the header, so the copy
- * that used to introduce this page now describes the card instead.
+ * Rendered inside this plugin's page in the **Settings** navigation
+ * (`SettingsPage`, seat `settings.section`). The page owns the heading and the
+ * description, so this body opens straight into the groups.
  *
  * Every preference the SiYuan original exposes has a home here, minus the three
  * that describe features DSH does not have (see `docs/DESIGN.md`).
  *
  * Each control writes straight through the controller, so a change is durable
- * the moment it is made and the body needs no Save button. The neighbouring
- * cards in that tab stage their edits behind Save / Discard instead; this one
- * deliberately does not, because a snippet manager is used by toggling things
- * and watching the page react, and a staging layer would put a Save between the
- * two.
+ * the moment it is made and the body needs no Save button. Neighbouring settings
+ * pages stage their edits behind Save / Discard instead; this one deliberately
+ * does not, because a snippet manager is used by toggling things and watching
+ * the page react, and a staging layer would put a Save between the two.
  *
  * Host-backed controls (the folder watch, the backups folder, Gist sync) are
  * gated on `useHostStatus`: the host answers loopback peers only, so on a LAN
