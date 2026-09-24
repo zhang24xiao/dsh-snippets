@@ -132,11 +132,11 @@ dsh plugin --profile web add link:$PWD/dsh-snippets
 
 ```bash
 pnpm install
-pnpm run check     # 类型检查 + 构建 + 三套测试
+pnpm run check     # 类型检查 + 构建 + 四套测试
 pnpm run watch     # 改动后自动重建
 ```
 
-`npm run test` 运行三套测试：
+`npm run test` 运行四套测试：
 
 - `test/host.test.mjs` —— 插件挂载（导出的 `Config` schema、解包后的 volatile 字段、设置 presentation
   的 owner、路由、两个配置提交信号）、监听设置变化后文件夹监听器的重新武装、每条路由的 loopback 围栏、
@@ -149,6 +149,11 @@ pnpm run watch     # 改动后自动重建
   并驱动片段运行时：启用的 CSS 片段恰好产生一个 `<style>`，启用的 JS 片段恰好执行一次，
   停用只移除对应元素，类型总开关能拦截注入，卸载后不留残留；
   随后对三个已注册席位做服务端渲染，渲染路径的问题会在这里暴露而不是等到界面上。
+- `test/client-modules.test.mjs` —— 把本包清单交给真实的 `@deepseek-ai/dsh-client-modules` 注册表
+  （用一个临时的 `node_modules/dsh-snippets` 软链还原 profile 的解析环境），把浏览器半的整条契约钉住：
+  合成出的 boot graph 里有 `dsh-snippets`、`clientPath()` 指到本包的 `client/client.js`、
+  `dsh.client.inject` 原样穿过清单解析且保持顺序、按公布的 rev 能从 `/plugins` 取到真实 bundle
+  （换个 rev 则 404）。它同时证明这张图由 Loader 记录驱动，而不是"磁盘上有包"就会进去。
 
 ## 许可证
 

@@ -489,7 +489,7 @@ dsh-snippets/
 ├── lib/index.js          # 构建产物（宿主半，约 39 KB）
 ├── client/client.js      # 构建产物（客户端半，约 601 KB，含 CodeMirror）
 ├── scripts/build-tests.mjs
-└── test/{entry.ts,host.test.mjs,client.test.mjs,cordis.test.mjs}
+└── test/{entry.ts,host.test.mjs,client.test.mjs,cordis.test.mjs,client-modules.test.mjs}
 ```
 
 ### 12.5 设置入口的最终位置（需求 2 的两次修订）
@@ -590,8 +590,8 @@ cordis 从 `^4.0.2` 提到 `^4.0.4`。删掉了一条会遮蔽解析的裸 `sche
 **(7) 本次验证结果。**
 
 - `npx tsc --noEmit`：0 error（改前基线 19 error，全在客户端半）。
-- `npm run check`：typecheck + 两个 bundle 构建 + `test/host.test.mjs` + `test/client.test.mjs`
-  + `test/cordis.test.mjs` 全绿。
+- `npm run check`：typecheck + 两个 bundle 构建 + 四套测试（`test/host.test.mjs`、
+  `test/client.test.mjs`、`test/cordis.test.mjs`、`test/client-modules.test.mjs`）全绿。
 - `test/host.test.mjs` 新增两组断言：挂载（`Config` 可调用、32 个字段解包后全是 volatile 引用、
   `configure` 的 owner 确实是**外层** fiber、路由恰好注册一条、两个事件都订阅）；
   以及"配置提交重新武装监听器"（别人的 ns 事件不反应、本 ns 事件把 `watch.active` 从 false 翻到
@@ -612,5 +612,63 @@ cordis 从 `^4.0.2` 提到 `^4.0.4`。删掉了一条会遮蔽解析的裸 `sche
 - `test/client.test.mjs`：`inject` 断言改为 `['slots','locale','configForms']`，
   假 ctx 从 `settingsScope.bind` 换成 `configForms.get`。
 
-未做：还没有把插件装进 `web` profile 做实机加载验证（profile 改动属于工作区外的持久修改，
-需用户明确同意后再执行）。
+- `test/client-modules.test.mjs`（新增）：把本包的清单交给**真实的**
+  `@deepseek-ai/dsh-client-modules`（0.1.7-rc.1）解析、合成、并按 rev 取字节。它补的是另一半
+  载荷的盲区：宿主半挂上不等于浏览器半进了 `window.__DSH_BOOT__`。怎么造环境：临时目录里放一个
+  `node_modules/dsh-snippets` 软链（就是 profile 安装造出的东西），再用
+  `root.provide('loader', { entries: () => rows })` 喂一行 Loader 记录，记录的
+  `parent.tree.ctx.baseUrl` 指向该目录——注册表的 `locatePkgJson` 正是从这里解析包。断言这几件事：
+  `graph().entries` 里有 `dsh-snippets` 且 rev 是 12 位十六进制；`clientPath()` 指到本包真实的
+  `client/client.js`；`dsh.client.inject` 原样穿过清单解析；`row.url` 是
+  `plugins/??dsh-snippets/client.js&rev=…`（**文档相对**：`comboReference` 会去掉路由首斜杠，
+  取字节时要自己补 `/`）；按该 rev 取字节得 200 + `text/javascript; charset=utf-8`，
+  体积是 bundle 加一个 `sourceMappingURL` 尾巴（624149 = 624080 + 69），正文里能读到
+  `window.__ModuleLoader__.load(` 与 `id: "dsh-snippets"`；同一路由换个 rev 是 404；
+  `HEAD` 返回同样的不可变缓存头且不带 body；最后一条反例：喂一行指向未安装包名的 Loader 记录，
+  合成结果为空——说明这张图由 Loader 记录驱动，不是"磁盘上有这个包"就会进去。
+  那条 404 阴性对照还顺带解释了为什么"不带 rev 直接 curl `/plugins/dsh-snippets/…` 得到 404"
+  **证明不了**没注册：`bundleResource` 命中不了就 404，而 `chunkRequest` 还要求文件名匹配
+  `/^client\.[A-Za-z0-9][A-Za-z0-9._-]*\.js$/`，主入口 `client.js` 本来就不走 chunk 路由。
+  另外：`dsh.client.inject` 只影响运行期模块的就绪顺序，`orderByModuleGraph` 只沿
+  `entry.external` 走拓扑，所以列出的三个包名即使不在图里也不会抛错。
+
+**(8) 实机安装与验证（`web` profile，经用户同意）。**
+
+安装走官方插件管理器（`plugin_manager install_bundle` → profile 内 `pnpm add`），结果
+`{"stage":"enable","target":"dsh-snippets","enabled":true,"changed":true,"application":"applied"}`。
+落地形态是 `link:`：profile 的 `dependencies` 里是
+`"dsh-snippets": "link:/mnt/mediaHDD4T/work/dsh-workspace/dsh_plugin/dsh-snippets"`，
+`dsh.profile.bundles` 末尾追加 `dsh-snippets`，`node_modules/dsh-snippets` 是指回仓库的软链。
+因为是 `link:` 且 `patchReload: live`，以后重建 `lib/index.js` / `client/client.js` 不必重装，
+profile 直接在原地解析。装前备份了 profile 的 `package.json` 与 `pnpm-lock.yaml`
+（`*.bak-pre-snippets-20260924-163812`）；回滚就是移除 bundles / dependencies 两项并恢复备份。
+
+实机证据（全部是打在运行中 3080 端口上的只读探测）：
+
+- 配置层：`dsh --profile web --dump-config` 里出现本包 patch 层的表头与那一行
+  （`# == dsh-snippets` / `- id: dsh-snippets` / `name: dsh-snippets`），证明 bundle 补丁已被
+  合成进当前 profile。
+- 宿主半：`GET /snippets/api/status` → 200，正文
+  `{"ok":true,"version":"0.3.0",…,"watch":{"active":false,"mode":"disabled",…}}`——行已挂载、
+  prefix 路由已注册、回环校验生效、`readSettings(config)` 拿到了已解析的默认值
+  （`active:false` 正对应默认的 `fileWatchMode: disabled`）。
+- 浏览器半：把 `--dump-config` 里那 297 条真实 Loader 行（含 `@linxin666/dsh-remote-web-ui`
+  这种第三方先例）连同 profile 目录一起喂给真实注册表，合成出的 roster 里 `dsh-snippets`
+  与官方 client 模块并列，`clientPath` 穿过 profile 软链指回本包 `client/client.js`。
+  再用**当场**由磁盘元数据算出的 rev 打运行中的宿主：
+  `GET /plugins/??dsh-snippets/client.js&rev=<rev>` → 200、624149 字节，正文以
+  `window.__ModuleLoader__.load({ id: "dsh-snippets", … })` 开头；把 rev 换成 `000000000000` → 404。
+  这条 200 只可能来自注册表的内存表：`bundleResource` 先查 `responses` / `previousBatchResponses`，
+  而兜底的 `chunkResponse` 要求 `pathname.startsWith('/plugins/<id>/')`——combo URL 的 pathname
+  恰好就是 `/plugins/`（`??dsh-snippets/client.js` 全在 search 里），永远匹配不上。所以在这里
+  404 才是"没注册"，200 就等于"表里有这一行，且 rev 与当前磁盘元数据一致"。
+  它还顺带证明了**运行中的**注册表会重新合成：`npm run check` 重建 bundle 后磁盘元数据变了，
+  rev 从 `9409a12f86d5` 变成 `33d5bfad41ea`，旧 rev 立即 404、新 rev 立即 200——`link:` 安装下
+  重建即生效，不必重装也不用重启。副作用记一笔：已经打开的前端标签页拿的是旧 rev，重建后会取不到，
+  需要刷新页面换到新的 boot graph。
+- 仍需人眼确认的一步：浏览器刷新一次页面才会拿到新的 boot graph，随后设置页里应出现 Snippets
+  卡片与片段编辑器。这属于 UI 观感，没有只读通道能替代（index 被 `authorizeIndex` 的 401 门挡着，
+  不去碰那扇门）。
+
+顺带一提：`--dump-config` 会打印 `patch: entry "chinese-thinking" not found`。那是 profile 补丁层里
+早就存在的悬空条目（本包的补丁只插入 `dsh-snippets` 一行，动不了别的表项），与本次安装无关。

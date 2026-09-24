@@ -168,11 +168,11 @@ Three settings describe SiYuan features that DSH does not have:
 
 ```bash
 pnpm install
-pnpm run check     # typecheck, build, and all three test suites
+pnpm run check     # typecheck, build, and all four test suites
 pnpm run watch     # rebuild on change
 ```
 
-`npm run test` runs three suites:
+`npm run test` runs four suites:
 
 - `test/host.test.mjs` — plugin mounting (the exported `Config` schema, the
   volatile fields it resolves to, the settings presentation owner, the routes,
@@ -193,6 +193,14 @@ pnpm run watch     # rebuild on change
   injection, and teardown leaves nothing behind. It then server-renders all
   three registered seats, so a broken render path fails here rather than in the
   GUI.
+- `test/client-modules.test.mjs` — hands this package's manifest to the real
+  `@deepseek-ai/dsh-client-modules` registry through a scratch
+  `node_modules/dsh-snippets` symlink, and asserts the whole browser-half
+  contract: the composed boot graph carries `dsh-snippets`, `clientPath()`
+  resolves to this package's `client/client.js`, `dsh.client.inject` survives
+  manifest parsing in order, and the advertised revision serves the real bundle
+  over `/plugins` (while a stale revision 404s). It also proves the graph is
+  driven by the Loader row rather than by the package merely being resolvable.
 
 ## License
 
