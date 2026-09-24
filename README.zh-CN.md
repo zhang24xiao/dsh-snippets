@@ -132,15 +132,19 @@ dsh plugin --profile web add link:$PWD/dsh-snippets
 
 ```bash
 pnpm install
-pnpm run check     # 类型检查 + 构建 + 两套测试
+pnpm run check     # 类型检查 + 构建 + 三套测试
 pnpm run watch     # 改动后自动重建
 ```
 
-`npm run test` 运行两套测试：
+`npm run test` 运行三套测试：
 
 - `test/host.test.mjs` —— 插件挂载（导出的 `Config` schema、解包后的 volatile 字段、设置 presentation
   的 owner、路由、两个配置提交信号）、监听设置变化后文件夹监听器的重新武装、每条路由的 loopback 围栏、
   备份、文件夹镜像（含多次扫描的 ID 稳定性）、Gist 导入计划、内容校验。
+- `test/cordis.test.mjs` —— 把构建好的宿主产物挂进真实的 `@deepseek-ai/cordis`，
+  并复刻 loader 自己的 volatile 提交，让 `Context.filter` 真正参与投递判定。它钉住两件假 ctx 证明不了的事：
+  loader 过滤后的 `loader/volatile-update` 能到达本插件、而挂在 `root` 上的监听器收不到（阴性对照）；
+  真正重新武装监听器的是 `settings/document-updated`，并且按命名空间放行。
 - `test/client.test.mjs` —— 在 jsdom 里按 `window.__ModuleLoader__.load` 的真实方式加载构建产物 `client/client.js`，
   并驱动片段运行时：启用的 CSS 片段恰好产生一个 `<style>`，启用的 JS 片段恰好执行一次，
   停用只移除对应元素，类型总开关能拦截注入，卸载后不留残留；

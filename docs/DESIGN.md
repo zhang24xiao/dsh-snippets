@@ -489,7 +489,7 @@ dsh-snippets/
 ├── lib/index.js          # 构建产物（宿主半，约 39 KB）
 ├── client/client.js      # 构建产物（客户端半，约 601 KB，含 CodeMirror）
 ├── scripts/build-tests.mjs
-└── test/{entry.ts,host.test.mjs,client.test.mjs}
+└── test/{entry.ts,host.test.mjs,client.test.mjs,cordis.test.mjs}
 ```
 
 ### 12.5 设置入口的最终位置（需求 2 的两次修订）
@@ -590,12 +590,25 @@ cordis 从 `^4.0.2` 提到 `^4.0.4`。删掉了一条会遮蔽解析的裸 `sche
 **(7) 本次验证结果。**
 
 - `npx tsc --noEmit`：0 error（改前基线 19 error，全在客户端半）。
-- `npm run check`：typecheck + 两个 bundle 构建 + `test/host.test.mjs` + `test/client.test.mjs` 全绿。
+- `npm run check`：typecheck + 两个 bundle 构建 + `test/host.test.mjs` + `test/client.test.mjs`
+  + `test/cordis.test.mjs` 全绿。
 - `test/host.test.mjs` 新增两组断言：挂载（`Config` 可调用、32 个字段解包后全是 volatile 引用、
   `configure` 的 owner 确实是**外层** fiber、路由恰好注册一条、两个事件都订阅）；
   以及"配置提交重新武装监听器"（别人的 ns 事件不反应、本 ns 事件把 `watch.active` 从 false 翻到
   true、再改成 disabled 后翻回 false，且**没有产生任何回写**——空文件夹 + 空片段库时
-  `reconcile` 的 `changed` 为 false）。
+  `reconcile` 的 `changed` 为 false）。注意这两组用的是假 ctx，回调是**直接调用**的：
+  它们只能证明"注册了、逻辑对"，证明不了"事件真的投递到本插件"。
+- `test/cordis.test.mjs`（新增）：把构建产物挂进真实的 `@deepseek-ai/cordis` 4.0.4，
+  并复刻 loader 自己的 `_commitVolatile`（含它构造的 `Context.filter`），补上假 ctx 的投递盲区。
+  它证明三件事：过滤后的 volatile 事件确实到达本插件监听器，而挂在 `root`（另一个 fiber）上的
+  监听器收不到——这条**阴性对照**是必须的，否则即使事件根本没过滤、随便谁都能收到，测试也会"通过"；
+  `settings/document-updated` 按命名空间放行，且真正重新武装 watcher 的是**信号**而非 ref 变动
+  （先只改 ref 不发事件 → watcher 保持武装 → 换别人的 ns → 仍不动 → 换本 ns → 才翻面）；
+  `configure` 的 owner 是本插件自己的 fiber，dispose 后 watcher 被拆掉、钩子不再抛错。
+  一个坑值得记下来：`root.plugin()` 返回的是 **facade 而不是 fiber**，而 loader 的 filter 取的是
+  `plugin(...).ctx.fiber`；把 facade 当成 fiber 塞进 `owner.fiber === fiber` 会让所有监听器被过滤掉，
+  看起来就像"本插件收不到 `loader/volatile-update`"——这正是本次适配中一度误判的原因，
+  测试里已用断言把这个区别钉住。
 - `test/client.test.mjs`：`inject` 断言改为 `['slots','locale','configForms']`，
   假 ctx 从 `settingsScope.bind` 换成 `configForms.get`。
 

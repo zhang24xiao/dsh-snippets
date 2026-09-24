@@ -63,7 +63,7 @@
     "watch": "node esbuild.config.mjs --watch",
     "build:test": "node scripts/build-tests.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm run build && npm run build:test && node test/host.test.mjs && node test/client.test.mjs",
+    "test": "npm run build && npm run build:test && node test/host.test.mjs && node test/client.test.mjs && node test/cordis.test.mjs",
     "check": "npm run typecheck && npm run test"
   },
   "peerDependencies": {

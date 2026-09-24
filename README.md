@@ -168,11 +168,11 @@ Three settings describe SiYuan features that DSH does not have:
 
 ```bash
 pnpm install
-pnpm run check     # typecheck, build, and both test suites
+pnpm run check     # typecheck, build, and all three test suites
 pnpm run watch     # rebuild on change
 ```
 
-`npm run test` runs two suites:
+`npm run test` runs three suites:
 
 - `test/host.test.mjs` — plugin mounting (the exported `Config` schema, the
   volatile fields it resolves to, the settings presentation owner, the routes,
@@ -180,6 +180,12 @@ pnpm run watch     # rebuild on change
   watch settings change, the loopback fence on every route, backups, the folder
   mirror (including id stability across scans), the Gist import plan, and the
   content guards.
+- `test/cordis.test.mjs` — mounts the built host bundle through the real
+  `@deepseek-ai/cordis` and replays the plugin loader's own volatile commit, so
+  that `Context.filter` arbitrates delivery for real. It pins the two things a
+  fake context cannot: the loader's filtered `loader/volatile-update` reaches
+  this plugin while a listener on `root` does not (the negative control), and
+  `settings/document-updated` is what re-arms the watcher, gated by namespace.
 - `test/client.test.mjs` — loads the built `client/client.js` through
   `window.__ModuleLoader__.load` in jsdom and drives the runtime: an enabled CSS
   snippet produces exactly one `<style>`, an enabled JS snippet runs exactly
