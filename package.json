@@ -1,11 +1,12 @@
 {
   "name": "dsh-snippets",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "CSS and JS snippet manager for the DeepSeek Harness web GUI. A sidebar-footer quick toggle opens a manager panel, and the plugin adds its own page to the Settings navigation; enabled CSS is injected as style elements and enabled JS runs in the page, so only trusted code should be enabled. Also mirrors a local folder of .css/.js files and publishes or imports a library through the GitHub Gist API. · DSH Web 代码片段管理器：侧栏底部快捷开关打开管理面板，并在设置导航里新增自己的页面；启用的 CSS 注入为 style 元素，启用的 JS 在页面内执行（无沙箱，只启用可信代码）；并支持本地文件夹监听与 Gist 同步。",
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": "^22.19.0 || >=24.0.0"
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.1.7-rc.1"
   },
   "main": "./lib/index.js",
   "exports": {
@@ -77,15 +78,18 @@
     "@codemirror/search": "^6.5.11",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.6",
-    "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-client-locale": "0.1.6-alpha.2",
-    "@deepseek-ai/dsh-client-ui-layout": "0.1.6-alpha.2",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.6-alpha.2",
-    "@deepseek-ai/dsh-client-ui-renderer": "0.1.6-alpha.2",
-    "@deepseek-ai/dsh-client-ui-settings": "0.1.6-alpha.2",
-    "@deepseek-ai/dsh-client-ui-sidebar": "0.1.6-alpha.2",
-    "@deepseek-ai/dsh-client-ui-slots": "0.1.6-alpha.2",
-    "@deepseek-ai/dsh-settings": "0.1.6-alpha.2",
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/cordis-plugin-loader": "^1.0.5",
+    "@deepseek-ai/cosmokit": "^1.8.5",
+    "@deepseek-ai/dsh-client-locale": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-layout": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-settings": "0.1.7-rc.1",
+    "@deepseek-ai/schemastery": "^3.18.4",
     "@lezer/highlight": "^1.2.1",
     "@types/node": "^22.20.0",
     "@types/react": "~18.3.1",
@@ -94,7 +98,6 @@
     "jsdom": "^30.0.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "schemastery": "^3.18.0",
     "typescript": "^5.9.3"
   }
 }

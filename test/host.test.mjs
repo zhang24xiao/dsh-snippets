@@ -3,8 +3,10 @@
  *
  * Three things are covered, in the order they matter:
  *
- *  1. **Mounting.** `apply` must register the `dsh-snippets` namespace with a
- *     composition base and attach the web route prefix.
+ *  1. **Mounting.** `apply` must expose the {@link Config} schema the loader
+ *     reads, opt out of the auto-generated settings section, attach the web
+ *     route prefix, and re-arm the folder watcher on either config-commit
+ *     signal.
  *  2. **The loopback fence.** The plugin's own endpoints may touch the user's
  *     filesystem and their GitHub token, so a non-loopback peer must be refused
  *     before any handler logic runs. This is the test that would catch a
@@ -26,7 +28,7 @@ process.env.DSH_HOME = scratch
 
 const internals = await import('./.build/internals.mjs')
 const {
-  apply, NAMESPACE, CONFIG_DEFAULTS, decodeConfig,
+  apply, Config, NAMESPACE, CONFIG_DEFAULTS, decodeConfig,
   reconcile, scanFolder, registerRoutes, ROUTE_PREFIX,
   planImport, gistFileName, splitGistFileName, parseGistId, lineDiff,
   createSnippetId, createdFromId, isValidCssContent, isValidJavaScript,
@@ -75,57 +77,139 @@ async function callRoute(handler, options) {
 
 /* ── 1. mounting ───────────────────────────────────────────────────── */
 
-const registrations = []
+// A fake cordis context that records what `apply` wires up. The host half only
+// touches `fiber`, `inject`, `effect` and `on`, so nothing here has to model the
+// rest of the runtime.
+const configureCalls = []
+const onCalls = []
 const effects = []
 const routes = []
+const updates = []
 
-let snapshotValue = { ...CONFIG_DEFAULTS }
-const scope = {
-  get: () => snapshotValue,
-  watch: () => () => {},
-  update: async (patch) => { snapshotValue = { ...snapshotValue, ...patch } },
-  replace: async (section) => { snapshotValue = { ...CONFIG_DEFAULTS, ...section } },
+// The plugin's resolved config: one stable reference per field, exactly the
+// shape the loader hands `apply`. `readSettings` only ever unwraps these, so
+// replacing the entries is a faithful stand-in for a volatile commit — down to
+// the deep-frozen snapshots a real commit produces.
+let plain = { ...CONFIG_DEFAULTS }
+const refs = Config({})
+function setPlain(patch) {
+  plain = { ...plain, ...patch }
+  Object.assign(refs, Config(plain))
 }
 
-const ctx = {
-  effect: (fn, _label) => { const dispose = fn(); if (typeof dispose === 'function') effects.push(dispose); return () => {} },
-  inject: (deps, callback) => {
-    const child = { ...ctx }
-    if (deps.includes('settings')) child.settings = provider
-    if (deps.includes('webServer')) child.webServer = webServer
-    callback(child)
+const settings = {
+  configure(presentation, owner) {
+    configureCalls.push({ presentation, owner })
+    return () => {}
+  },
+  async update(ns, patch) {
+    // The real service throws for an entry it does not know, so mirror that
+    // rather than letting a wrong namespace pass silently.
+    if (ns !== NAMESPACE) throw new Error(`No configurable plugin entry "${ns}"`)
+    updates.push(patch)
+    setPlain(patch)
   },
 }
-const provider = {
-  register: (ns, schema, options) => {
-    registrations.push({ ns, schema, options })
-    return scope
-  },
-}
+
 const webServer = {
-  register: (route) => {
+  register(route) {
     routes.push(route)
     return () => {}
   },
 }
-ctx.settings = provider
-ctx.webServer = webServer
 
-apply(ctx)
+const fiber = { uid: 1 }
+const ctx = {
+  fiber,
+  effect(fn, _label) {
+    const dispose = fn()
+    if (typeof dispose === 'function') effects.push(dispose)
+    return () => {}
+  },
+  on(event, handler) {
+    onCalls.push({ event, handler })
+    return () => {}
+  },
+  inject(deps, callback) {
+    const child = { ...this }
+    if (deps.includes('settings')) child.settings = settings
+    if (deps.includes('webServer')) child.webServer = webServer
+    callback(child)
+  },
+}
 
-assert.equal(registrations.length, 1, 'exactly one namespace is registered')
-assert.equal(registrations[0].ns, NAMESPACE)
+apply(ctx, refs)
+
+assert.equal(typeof Config, 'function', 'the host module must expose the schema as Config')
 assert.equal(NAMESPACE, 'dsh-snippets')
-assert.equal(typeof registrations[0].options.base, 'object', 'a composition base must be supplied')
-assert.equal(registrations[0].options.applies, 'live')
+
+assert.equal(configureCalls.length, 1, 'the settings presentation is configured exactly once')
+assert.deepEqual(configureCalls[0].presentation, { auto: false }, 'no generated section is wanted')
+assert.equal(
+  configureCalls[0].owner,
+  fiber,
+  'configure() must be owned by the plugin fiber, not the injected child fiber',
+)
+
+// A schema reaches the settings UI only through its volatile fields: `describe()`
+// skips any entry whose schema has none, which would leave the plugin with no
+// card at all. Every top-level field therefore has to be a live reference.
+const schemaProbe = Config({})
+for (const [key, value] of Object.entries(schemaProbe)) {
+  assert.equal(typeof value?.get, 'function', `${key} must be a volatile reference`)
+}
+assert.ok(Object.keys(schemaProbe).length >= 30)
+
 assert.equal(routes.length, 1, 'the web route prefix must be registered')
 assert.equal(routes[0].kind, 'prefix')
 assert.equal(routes[0].path, ROUTE_PREFIX)
 assert.equal(ROUTE_PREFIX, '/snippets/api')
 
-/* ── 2. the loopback fence ─────────────────────────────────────────── */
+const signalled = onCalls.map((entry) => entry.event).sort()
+assert.deepEqual(
+  signalled,
+  ['loader/volatile-update', 'settings/document-updated'],
+  'both config-commit signals must be observed',
+)
+
+/* ── 2. config commits re-arm the watcher ──────────────────────────── */
 
 const handler = routes[0].handler
+
+// `active` is the honest signal here: `status()` reports the mode straight from
+// the config, so only `active` proves `sync()` actually re-armed the timer.
+// These are also what catches a signal path that re-arms on an unrelated write.
+const statusOf = async () => (await callRoute(handler, { url: `${ROUTE_PREFIX}/status` })).json()
+
+assert.equal((await statusOf()).watch.active, false, 'the default config watches nothing')
+
+const watchDir = resolve(scratch, 'watch-src')
+mkdirSync(watchDir, { recursive: true })
+
+const documentSignal = onCalls.find((entry) => entry.event === 'settings/document-updated')
+const volatileSignal = onCalls.find((entry) => entry.event === 'loader/volatile-update')
+assert.ok(documentSignal !== undefined, 'the settings event must be observed')
+assert.ok(volatileSignal !== undefined, 'the loader event must be observed')
+
+// Values that changed without a commit signal must not take effect yet.
+setPlain({ fileWatchMode: 'watch', fileWatchPath: watchDir })
+assert.equal((await statusOf()).watch.active, false, 'the watcher waits for a commit signal')
+
+// The settings event is namespace-scoped, so another entry's revision is inert.
+documentSignal.handler('someone-else', 1)
+assert.equal((await statusOf()).watch.active, false, 'another namespace must not re-arm the watcher')
+
+documentSignal.handler(NAMESPACE, 2)
+assert.equal((await statusOf()).watch.active, true, 'our own entry must re-arm the watcher')
+
+// The loader's event carries no namespace, so it re-arms unconditionally.
+setPlain({ fileWatchMode: 'disabled', fileWatchPath: '' })
+volatileSignal.handler([])
+assert.equal((await statusOf()).watch.active, false, 'the loader signal must stop the watcher too')
+
+assert.deepEqual(updates, [], 'a library that did not change is never written back')
+
+/* ── 3. the loopback fence ─────────────────────────────────────────── */
 
 for (const [route, method, body] of [
   ['/status', 'GET', undefined],
@@ -161,7 +245,7 @@ const unknown = await callRoute(handler, { url: `${ROUTE_PREFIX}/nope` })
 assert.equal(unknown.record.status, 404)
 assert.equal(unknown.json().code, 'unknown-route')
 
-/* ── 3. backups around the route + the data directory ──────────────── */
+/* ── 4. backups around the route + the data directory ──────────────── */
 
 const sample = [
   { id: createSnippetId(1700000000000), name: 'alpha', type: 'css', content: 'a{}', enabled: true, created: 1 },
@@ -177,7 +261,7 @@ assert.equal(backupBody.count, 1)
 assert.ok(backupBody.path.startsWith(backupsDir()))
 assert.equal(readdirSync(backupsDir()).length, 1)
 
-/* ── 4. the folder mirror ──────────────────────────────────────────── */
+/* ── 5. the folder mirror ──────────────────────────────────────────── */
 
 const snippetDir = join(scratch, 'snippets')
 mkdirSync(snippetDir, { recursive: true })
@@ -228,7 +312,7 @@ const namedFile = named.files.find((file) => file.id === namedId)
 assert.ok(namedFile !== undefined, 'the leading id in a file name must be read back')
 assert.equal(namedFile.title, 'from-gist')
 
-/* ── 5. the Gist plan ──────────────────────────────────────────────── */
+/* ── 6. the Gist plan ──────────────────────────────────────────────── */
 
 const local = [
   { id: '20260101000000-aaaaaaa', name: 'one', type: 'css', content: 'a{}', enabled: true, created: 1 },
@@ -283,7 +367,7 @@ assert.equal(parseGistId('https://example.com/nope'), null)
 const diff = lineDiff('a\nb\nc', 'a\nB\nc')
 assert.deepEqual(diff.map((line) => line.kind), ['same', 'local', 'gist', 'same'])
 
-/* ── 6. content guards and helpers ─────────────────────────────────── */
+/* ── 7. content guards and helpers ─────────────────────────────────── */
 
 assert.equal(isValidCssContent('a{}'), true)
 assert.equal(isValidCssContent('a{} </style><script>alert(1)</script>'), false)
@@ -325,7 +409,7 @@ assert.equal(withString.content, '.a { content: "}"; }')
 // An unbalanced bracket is refused rather than guessed at.
 assert.equal(reindent('a {', '  ').ok, false)
 
-/* ── 7. schema narrowing ───────────────────────────────────────────── */
+/* ── 8. schema narrowing ───────────────────────────────────────────── */
 
 assert.equal(decodeConfig(null), undefined)
 assert.equal(decodeConfig('nope'), undefined)

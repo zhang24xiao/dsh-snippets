@@ -7,11 +7,15 @@
  * heading and its description, and `SettingsBody` owns every row below them.
  *
  * The seat that used to carry this surface — the per-namespace card
- * `settings.plugin.item` inside the Plugins section — no longer exists in DSH
- * 0.1.6-alpha.2, and a registration against it is dropped silently rather than
- * reported. That is exactly how this page went missing from the UI while its
- * settings stayed intact in the `dsh-snippets` namespace, which is why the
- * surface moved here instead of being repaired in place.
+ * `settings.plugin.item` inside the Plugins section — no longer exists, and a
+ * registration against it is dropped silently rather than reported. That is how
+ * this page once went missing from the UI while its settings stayed intact, so
+ * the surface lives on this seat instead of being repaired in place.
+ *
+ * As of DSH 0.1.7 the settings values are reachable only through
+ * `ctx.configForms.get(entryId)`, where the entry id is this plugin's own id:
+ * the plugin exports a `Config` schema and the host serves its volatile fields,
+ * rather than the plugin registering a namespace of its own.
  *
  * One deliberate difference from the neighbouring settings pages: every control
  * writes straight through the controller and there is no Save / Discard footer.

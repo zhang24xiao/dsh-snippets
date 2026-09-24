@@ -23,11 +23,11 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import {
   Button,
-  IconDownloadOutline16,
-  IconFolderOpenOutline16,
-  IconRefreshOutline16,
-  IconRightUpOutline16,
-  IconTrashOutline16,
+  IconDownloadOutlineRegular,
+  IconFolderOpenOutlineRegular,
+  IconRefreshOutlineRegular,
+  IconRightUpOutlineRegular,
+  IconTrashOutlineRegular,
   Switch,
   Tag,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -607,7 +607,7 @@ export function SettingsBody({ controller, t }: SettingsBodyProps) {
               <Button
                 variant="outline"
                 size="sm"
-                icon={<IconRefreshOutline16 size={14} />}
+                icon={<IconRefreshOutlineRegular size={14} />}
                 disabled={!hostReady || config.fileWatchMode === 'disabled'}
                 onClick={rescan}
               >
@@ -623,7 +623,7 @@ export function SettingsBody({ controller, t }: SettingsBodyProps) {
           <Tag>{String(counts.total)}</Tag>
         </Field>
         <Field label={t('action.export')} desc={t('set.data.export.desc')}>
-          <Button variant="outline" size="sm" icon={<IconDownloadOutline16 size={14} />} onClick={exportAll}>
+          <Button variant="outline" size="sm" icon={<IconDownloadOutlineRegular size={14} />} onClick={exportAll}>
             {t('action.export')}
           </Button>
         </Field>
@@ -653,7 +653,7 @@ export function SettingsBody({ controller, t }: SettingsBodyProps) {
           <Button
             variant="outline"
             size="sm"
-            icon={<IconFolderOpenOutline16 size={14} />}
+            icon={<IconFolderOpenOutlineRegular size={14} />}
             disabled={!hostReady}
             onClick={openBackups}
           >
@@ -669,7 +669,7 @@ export function SettingsBody({ controller, t }: SettingsBodyProps) {
           <Button
             variant="outline"
             size="sm"
-            icon={<IconTrashOutline16 size={14} />}
+            icon={<IconTrashOutlineRegular size={14} />}
             onClick={clearAll}
           >
             {t('action.clearAll')}
@@ -693,7 +693,7 @@ export function SettingsBody({ controller, t }: SettingsBodyProps) {
           <Button
             variant="outline"
             size="sm"
-            icon={<IconRightUpOutline16 size={14} />}
+            icon={<IconRightUpOutlineRegular size={14} />}
             disabled={!hostReady}
             onClick={() => { setShowPublish(true) }}
           >

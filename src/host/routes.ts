@@ -47,10 +47,8 @@ export interface WatchStatus {
 export interface HostBridge {
   /** Current resolved settings section. */
   read(): Record<string, unknown>
-  /** Merge a patch into the namespace's user layer. */
+  /** Merge a patch into the plugin's settings entry. */
   patch(patch: object): Promise<void>
-  /** Replace the namespace's user layer wholesale. */
-  replace(section: object): Promise<void>
   /** Current watcher state. */
   watchStatus(): WatchStatus
   /** Run one scan immediately. */

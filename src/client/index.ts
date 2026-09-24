@@ -7,17 +7,16 @@
  *    in the same sidebar-foot row `@linxin666/dsh-remote-web-ui` uses (the seat
  *    the SiYuan original puts its top-bar button in, translated to DSH);
  *  - `settings.section` — an independent "Code Snippets" page in the settings
- *    navigation. This is the live settings extension point in DSH 0.1.6-alpha.2:
- *    the per-namespace card `settings.plugin.item` this surface once claimed is
- *    gone, and a registration against it is dropped without a word;
+ *    navigation, which is the live settings extension point in DSH 0.1.7;
  *  - `shell.overlay` — the editors, confirmations and toasts, so a dialog
  *    survives the panel closing and renders above every column.
  *
- * The snippet library itself is read and written through `ctx.settingsScope`
- * on the `dsh-snippets` namespace the host half registered, and the runtime
- * projects it onto the page. No snippet data crosses a bespoke endpoint, which
- * is what keeps the feature safe on a LAN or tunneled deployment: an unpaired
- * visitor can never reach a route that would inject code into someone's page.
+ * The snippet library is read and written through the shared settings form for
+ * the `dsh-snippets` entry — the host half exposes that entry by exporting its
+ * schema, and `ctx.configForms.get` is the settings provider's accessor for it.
+ * No snippet data crosses a bespoke endpoint, which is what keeps the feature
+ * safe on a LAN or tunneled deployment: an unpaired visitor can never reach a
+ * route that would inject code into someone's page.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
@@ -27,7 +26,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // `shell.overlay` seat declaration.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import { NAMESPACE, decodeConfig } from '../shared/schema.ts'
+import { NAMESPACE } from '../shared/schema.ts'
 import type { FooterPosition, SnippetsConfig } from '../shared/types.ts'
 import { createController, type SnippetsController } from './controller.ts'
 import { en, zh } from './locales.ts'
@@ -43,8 +42,15 @@ export const name = 'dsh-snippets'
 /** Dictionary namespace owned by this plugin. */
 const NS = 'snippets'
 
-/** Services this plugin needs before it can register anything. */
-export const inject = ['slots', 'locale', 'settingsScope']
+/**
+ * Services this plugin needs before it can register anything.
+ *
+ * `configForms` is the settings provider's shared-form service. It is a plain
+ * service dependency, not a `dsh.client` entry: the latter lists the packages
+ * whose browser halves must be loaded first, and those are declared in
+ * `package.json` instead.
+ */
+export const inject = ['slots', 'locale', 'configForms']
 
 /**
  * The `order` that places the quick toggle on one side of the other footer
@@ -79,11 +85,14 @@ export function apply(ctx: ClientContext): void {
 
   installGlobal((...args) => { console.info('[dsh-snippets]', ...args) })
 
-  const scope = ctx.settingsScope.bind<SnippetsConfig>({
-    namespace: NAMESPACE,
-    decode: decodeConfig,
-  })
-  const controller: SnippetsController = createController(scope)
+  // Our settings namespace IS this plugin's own profile entry id, so the shared
+  // form is looked up by that id directly. `get` is the settings provider's
+  // accessor for cross-plugin consumers: it keys one form per entry id and
+  // writes through the provider's own fiber, so this half needs no `remote`
+  // dependency of its own. The form's own decoder is not selectable from here,
+  // which is why the controller narrows every section with `decodeConfig`.
+  const form = ctx.configForms.get<SnippetsConfig>(NAMESPACE)
+  const controller: SnippetsController = createController(form)
   // Unloading removes every `<style>` this plugin injected, including the
   // preview element and the applied snippets themselves.
   ctx.effect(() => () => { controller.dispose() }, 'dsh-snippets: runtime teardown')
@@ -130,11 +139,10 @@ export function apply(ctx: ClientContext): void {
 
   /* ── the page in the settings navigation ───────────────────────── */
 
-  // `settings.section` is the live settings extension point in DSH
-  // 0.1.6-alpha.2: the panel's left nav renders one entry per registrant and
-  // mounts the contribution inside its content column. A nav label is read once
-  // at registration, so a locale switch re-registers the entry rather than
-  // leaving a stale label behind.
+  // `settings.section` renders one entry in the panel's left nav and mounts the
+  // contribution inside its content column. A nav label is read once at
+  // registration, so a locale switch re-registers the entry rather than leaving
+  // a stale label behind.
   ctx.slots.inject('settings.section', () => {
     let dispose: (() => void) | undefined
     let appliedLabel: string | null = null

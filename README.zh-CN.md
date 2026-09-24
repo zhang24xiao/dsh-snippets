@@ -50,6 +50,9 @@
 
 ## 安装
 
+要求 DeepSeek Harness `0.1.7-rc.1` 或更高：0.1.7 重写了设置线，更早的版本既没有
+`configForms` 服务，也没有可供插件绑定的、按 entry id 取配置的设置接口。
+
 ```bash
 dsh plugin --profile web add github:zhang24xiao/dsh-snippets
 ```
@@ -135,8 +138,9 @@ pnpm run watch     # 改动后自动重建
 
 `npm run test` 运行两套测试：
 
-- `test/host.test.mjs` —— 命名空间注册、每条路由的 loopback 围栏、备份、文件夹镜像（含多次扫描的 ID 稳定性）、
-  Gist 导入计划、内容校验。
+- `test/host.test.mjs` —— 插件挂载（导出的 `Config` schema、解包后的 volatile 字段、设置 presentation
+  的 owner、路由、两个配置提交信号）、监听设置变化后文件夹监听器的重新武装、每条路由的 loopback 围栏、
+  备份、文件夹镜像（含多次扫描的 ID 稳定性）、Gist 导入计划、内容校验。
 - `test/client.test.mjs` —— 在 jsdom 里按 `window.__ModuleLoader__.load` 的真实方式加载构建产物 `client/client.js`，
   并驱动片段运行时：启用的 CSS 片段恰好产生一个 `<style>`，启用的 JS 片段恰好执行一次，
   停用只移除对应元素，类型总开关能拦截注入，卸载后不留残留；

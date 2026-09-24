@@ -78,11 +78,16 @@ const primitives = {
   useAnchoredMaxHeight: () => 400,
   writeClipboard: async () => true,
 }
+// DSH 0.1.7 replaced the outline icon family: the `Outline16`/`Outline14`
+// suffixed exports are gone, and the surviving `OutlineRegular`/`OutlineMedium`
+// pair both default to 14. Every call site in this plugin passes an explicit
+// `size`, so only the names had to move.
 for (const name of [
-  'IconCodeOutline16', 'IconSearchOutline16', 'IconSettingsOutline16', 'IconPlusOutline16',
-  'IconRefreshOutline16', 'IconEditOutline16', 'IconCopyOutline16', 'IconTrashOutline16',
-  'IconChevronDownOutline14', 'IconWarningOutline16', 'IconCloseOutline16', 'IconDownloadOutline16',
-  'IconFolderOpenOutline16', 'IconRightUpOutline16', 'IconLoadingOutline16', 'IconCheckOutline16',
+  'IconChevronDownOutlineRegular', 'IconCodeOutlineRegular', 'IconCopyOutlineRegular',
+  'IconDownloadOutlineRegular', 'IconEditOutlineRegular', 'IconFolderOpenOutlineRegular',
+  'IconLoadingOutlineRegular', 'IconPlusOutlineRegular', 'IconRefreshOutlineRegular',
+  'IconRightUpOutlineRegular', 'IconSearchOutlineRegular', 'IconSettingsOutlineRegular',
+  'IconTrashOutlineRegular',
 ]) {
   primitives[name] = icon
 }
@@ -106,7 +111,7 @@ assert.equal(captured.id, 'dsh-snippets')
 
 const mod = captured.factory(stubRequire)
 assert.equal(mod.name, 'dsh-snippets')
-assert.deepEqual(mod.inject, ['slots', 'locale', 'settingsScope'])
+assert.deepEqual(mod.inject, ['slots', 'locale', 'configForms'])
 assert.equal(typeof mod.apply, 'function')
 
 /* ── a fake cordis context ─────────────────────────────────────────── */
@@ -117,15 +122,18 @@ const localeListeners = new Set()
 let snapshotValue = { ...defaults() }
 const writes = []
 
+// A stand-in for the `ConfigForm` the settings UI hands every registrant. In
+// 0.1.7 that accessor is `configForms.get(entryId)` and the entry id is the
+// plugin's own id, so `get` is keyed by nothing but our name.
 const scope = {
   getSnapshot: () => ({ status: 'ready', value: snapshotValue, base: undefined, user: undefined, revision: 1, writable: true, mode: 'host' }),
   subscribe: (listener) => { listeners.add(listener); return () => { listeners.delete(listener) } },
-  set: async (field, value) => { writes.push({ op: 'set', path: [field], value }) },
-  unset: async (field) => { writes.push({ op: 'unset', path: [field] }) },
-  mutate: async (ops) => { writes.push(...ops) },
+  set: async (field, value) => { writes.push({ op: 'set', path: [field], value }); return true },
+  unset: async (field) => { writes.push({ op: 'unset', path: [field] }); return true },
+  mutate: async (ops) => { writes.push(...ops); return true },
 }
 
-/** Push a new snapshot and notify, as the real scope does after a commit. */
+/** Push a new snapshot and notify, as the real form does after a commit. */
 function publish(next) {
   snapshotValue = next
   for (const listener of Array.from(listeners)) listener()
@@ -144,7 +152,7 @@ const ctx = {
     },
     subscribe: (listener) => { localeListeners.add(listener); return () => { localeListeners.delete(listener) } },
   },
-  settingsScope: { bind: () => scope },
+  configForms: { get: () => scope },
   slots: {
     inject: (_key, callback) => { callback(); return () => {} },
     register: (options, component) => {
@@ -170,9 +178,9 @@ assert.equal(footer.options.order, 10, 'the default footer position is the right
 assert.equal(footer.options.locale, 'snippets')
 // The settings page lives in the settings navigation, whose list slot keys one
 // entry per registrant by `id`. The per-namespace card seat this surface used to
-// claim (`settings.plugin.item`) is gone in DSH 0.1.6-alpha.2, and a
-// registration against it is dropped without a word — so a regression that
-// reintroduces it must fail right here instead of silently rendering nothing.
+// claim (`settings.plugin.item`) is gone, and a registration against it is
+// dropped without a word — so a regression that reintroduces it must fail right
+// here instead of silently rendering nothing.
 const page = registrations.find((entry) => entry.options.name === 'settings.section')
 assert.equal(page.options.id, 'dsh-snippets', 'the section is identified by the namespace it edits')
 assert.equal(page.options.order, 30, 'the section keeps its place in the settings nav')

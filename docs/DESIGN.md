@@ -28,12 +28,12 @@
   ctx.slots ──注册席位──> 快捷开关面板 (sidebar.footer.action)
                          代码片段管理器设置页 (settings.section)
                          片段编辑器（由面板打开）
-  ctx.settingsScope <──读写── 上面三个界面
+  ctx.configForms.get('dsh-snippets') <──读写── 上面三个界面
   片段运行时 ──注入 <style> / 执行 Function──> DSH Web 页面
         ▲
         └── 快照变更
-  ctx.settingsScope ──settings 线──> 宿主进程 · 宿主半 lib/index.js
-                                       ├─ 注册命名空间 schema
+  ctx.configForms ──settings 线──> 宿主进程 · 宿主半 lib/index.js
+                                       ├─ 导出 Config schema（顶层字段全部 volatile）
                                        ├─ 片段文件夹监听（轮询 *.css / *.js）
                                        └─ GitHub Gist（导入 / 发布 / 差异）
                                      └─持久化──> ~/.dsh/settings.yaml
@@ -41,8 +41,14 @@
 
 要点：
 
-- **唯一事实源**是设置文档里 `dsh-snippets` 这一段。客户端半读快照、写变更；宿主半注册 schema，
-  并在需要时（文件监听、Gist 导入）写回同一段。
+- **唯一事实源**是设置文档里 `dsh-snippets` 这一段。0.1.7 起**设置命名空间就是插件自己的
+  entry id**：插件不再"注册命名空间"，而是导出一个 schemastery `Config`，配置以 `apply(ctx, config)`
+  的第二个参数到手，写入走 `ctx.settings.update('dsh-snippets', patch)`。客户端半用
+  `ctx.configForms.get('dsh-snippets')` 拿到这个 entry 的表单并订阅快照；宿主半在需要时
+  （文件监听、Gist 导入）写回同一段。
+- **所有顶层字段都是 `volatile`。** 这让任何一次设置提交都走 loader 的 volatile-only 快路径：
+  配置原地更新、fiber 不重挂载，因此文件夹监听器与 HTTP 路由在改设置时不会重建。
+  客户端半因此必须在每次读快照时重新解包（`decodeConfig`），不能缓存首次解析结果。
 - 客户端半**不替换任何官方界面**：`slots.register` 只是往官方已声明的席位里加一个条目。
 - 宿主半负责三件浏览器做不到的事：读本地文件夹、调 GitHub API、在系统文件管理器里打开备份目录。
 
@@ -61,29 +67,35 @@ dsh-snippets/
 ├── docs/DESIGN.md               # 本文件
 ├── src/
 │   ├── shared/
-│   │   ├── schema.ts            # schemastery 配置 schema（两半共用的字段契约）
+│   │   ├── schema.ts            # schemastery Config（两半共用的字段契约）+ 解包读取
 │   │   └── types.ts             # Snippet / Prefs / 排序 / 搜索枚举
 │   ├── host/
-│   │   ├── index.ts             # cordis 插件入口：注册命名空间 + 启动宿主能力
+│   │   ├── index.ts             # cordis 插件入口：导出 Config + 启动宿主能力
 │   │   ├── paths.ts             # DSH_HOME / 片段文件夹 / 备份目录解析
-│   │   ├── file-watch.ts        # 文件夹轮询 → 命名空间
+│   │   ├── file-watch.ts        # 文件夹轮询 → 片段列表
 │   │   ├── gist.ts              # GitHub Gist REST：拉取 / 发布 / 差异
 │   │   ├── backups.ts           # 覆盖导入前自动备份、打开备份目录
+│   │   ├── http.ts              # 响应封套小工具
 │   │   └── routes.ts            # /snippets/api/*（仅宿主专用操作，不回传 Token）
 │   └── client/
-│       ├── index.ts             # apply(ctx)：字典 / scope / 席位 / 运行时
-│       ├── store.ts             # settingsScope 绑定与写队列封装
-│       ├── model.ts             # 片段模型：ID、排序、搜索、校验、克隆
+│       ├── index.ts             # apply(ctx)：字典 / 表单 / 席位 / 运行时
+│       ├── controller.ts        # ConfigForm 绑定与写队列封装
 │       ├── apply.ts             # 片段运行时：<style> 注入 / Function 执行 / 预览
+│       ├── host-api.ts          # /snippets/api 客户端
+│       ├── deep-link.ts         # 设置面板深链（尽力而为）
 │       ├── locales.ts           # zh + en 字典
 │       ├── styles.ts            # 单一 CSS 文本，全部使用 --dsw-alias-* 变量
 │       └── ui/
+│           ├── shared.tsx       # 图标 / 标签等共用小件
+│           ├── icons.tsx        # 自绘 </> 字形
+│           ├── code-editor.ts   # CodeMirror 6 封装（含主题与语言包）
 │           ├── FooterEntry.tsx  # sidebar.footer.action 席位（</> 触发器）
 │           ├── ManagerPanel.tsx # 快捷面板（复刻附图 1）
 │           ├── EditorDialog.tsx # 片段编辑器（CodeMirror 6）
-│           ├── SettingsPage.tsx # settings.section 页面
-│           ├── sections/        # 通用 / 菜单 / 编辑器 / 行为 / 监听 / 数据 / 同步 / 关于
-│           └── dialogs/         # 删除确认 / 重载确认 / Gist 导入 / 差异对比 / 发布确认
+│           ├── GistDialogs.tsx  # Gist 导入 / 差异对比 / 发布确认
+│           ├── OverlayHost.tsx  # shell.overlay 席位
+│           ├── SettingsBody.tsx # 设置页的八个分组
+│           └── SettingsPage.tsx # settings.section 页面
 ├── lib/index.js                 # 构建产物（入库）
 ├── client/client.js             # 构建产物（入库，含 CSS 与 CodeMirror）
 └── .gitignore                   # node_modules / .pnpm-store / *.log
@@ -124,8 +136,8 @@ window.__ModuleLoader__.load({
   factory: (require) => {
     const { createElement, useState } = require('react')
     const { createPortal } = require('react-dom')
-    const { IconCodeOutline16, useAnchoredPosition, /* … */ } = require('@deepseek-ai/dsh-client-ui-primitives')
-    return { name: 'dsh-snippets', inject: ['slots', 'settingsScope', 'locale'], apply }
+    const { IconCodeOutlineRegular, useAnchoredPosition, /* … */ } = require('@deepseek-ai/dsh-client-ui-primitives')
+    return { name: 'dsh-snippets', inject: ['slots', 'locale', 'configForms'], apply }
   },
 })
 ```
@@ -148,7 +160,7 @@ interface Snippet {
   created: number     // epoch ms
 }
 
-interface SnippetsPrefs {
+interface SnippetsConfig {
   // 总开关（对应 SiYuan 的 config.snippet.enabledCSS / enabledJS）
   cssMasterEnabled: boolean
   jsMasterEnabled: boolean
@@ -156,7 +168,7 @@ interface SnippetsPrefs {
   // 通用
   defaultTab: 'css' | 'js'
   newSnippetEnabled: boolean
-  rowClickAction: 0 | 1 | 2            // 无操作 / 切换开关 / 打开编辑器
+  rowClickAction: 'none' | 'toggle' | 'editor'   // 无操作 / 切换开关 / 打开编辑器
   sortType: SortType                   // 9 项，见 §6.1
   searchMode: 0 | 1 | 2 | 3            // 禁用 / 标题 / 内容 / 标题或内容
   footerPosition: 'left' | 'right'     // 对应 TCOTC 的 topBarPosition
@@ -191,8 +203,7 @@ interface SnippetsPrefs {
   fileWatchMirrorMode: 'merge' | 'overwrite'
   fileWatchDeleteMissing: boolean
 
-  // Gist 同步
-  gistToken: string                    // schemastery secret，走脱敏路径
+  // Gist 同步（Token 本身不在 schema 里，见 §12.2 第 1 条）
   gistLastPublished: string
   gistLastImported: string
 
@@ -201,11 +212,19 @@ interface SnippetsPrefs {
 }
 ```
 
+**上面每一个顶层字段都带 `.volatile()`**（`snippets` 数组本身一处，数组元素的字段不动）。这不是
+可选装饰：设置面板只服务"含 volatile 字段"的 entry，一个 volatile 字段都没有的 schema 会整条被
+`describe()` 跳过，客户端拿到的快照永远是 `unavailable`。反过来，全字段 volatile 换来的是
+loader 的 volatile-only 快路径——改设置时配置原地更新、fiber 不重挂载。
+
+字段类型是 `Volatile<T>` 包装（`config.foo` 是 `{ get(): T }` 而不是 `T`），两半都要经
+`src/shared/schema.ts` 的 `readSettings()` / `decodeConfig()` 解包后才能当普通对象用。
+
 ---
 
 ## 5. 快捷面板（复刻附图 1）
 
-**触发器**：`sidebar.footer.action` 席位，`</>` 图标（`IconCodeOutline16`）。
+**触发器**：`sidebar.footer.action` 席位，`</>` 图标（自绘的 `CodeGlyph`，见 §12.2 第 10 条）。
 位置由 `footerPosition` 决定：
 
 | 取值 | `order` | 效果 |
@@ -508,3 +527,77 @@ dsh-snippets/
   现已改为箭头属性。
 - 宿主测试覆盖：命名空间注册、9 条路由的 loopback 围栏、备份、文件夹镜像（含跨扫描 ID 稳定）、
   Gist 三种导入模式、内容校验、格式化安全性。
+
+### 12.6 适配 DSH 0.1.7-rc.1（2026-09-24）
+
+原实现是针对 0.1.6-alpha.2 写的。0.1.7 的**设置线被整体重写**，加上图标族与若干组件契约改名，
+插件无法直接加载，本次按官方 0.1.7-rc.1 的 typings 与官方插件源码逐一改写。
+
+**(1) 设置模型：命名空间 = 插件自己的 entry id。** 这是本次唯一的破坏性变更。
+
+| | 0.1.6-alpha.2（旧） | 0.1.7-rc.1（新） |
+| --- | --- | --- |
+| 声明配置 | 宿主半在 `apply` 里注册一个命名空间 | 插件**导出** `Config`（schemastery），loader 读 `plugin.Config` |
+| 拿到配置 | 读注册表 | `apply(ctx, config)` 第二个参数就是解析好的配置 |
+| 客户端读 | `ctx.settingsScope.bind(...)` | `ctx.configForms.get(entryId)` → `ConfigForm` |
+| 客户端写 | `scope.set/unset` | `form.mutate(ops, expectedRevision?)` |
+| 读快照 | Observable | `form.getSnapshot()`（引用稳定） + `form.subscribe()` |
+| 设置页席位 | `settings.plugin.item`（已不存在） | `settings.section`（本次沿用，见 §12.5） |
+
+`ctx.settings.installSection()`、`ctx.settingsScope`、`settings.plugin.item` 在 0.1.7-rc.1 里
+**都不存在**（对已装包做过全量符号检索，命中 0 次）。skill `dsh-plugin-dev` 的
+`references/adding-a-settings-card.zh.md` 还是旧版配方，已按运行时 typings 与官方插件
+`dsh-remote-web-ui` / `dsh-experimental-speech-to-text` 的写法校正。
+
+落点：`src/shared/schema.ts` 导出 `Config`；`src/host/index.ts` 用 `export { Config }` 把它挂到
+模块命名空间上（cordis 是从模块的 `Config` 字段读取 schema 的），`apply(ctx, config)` 收到的是
+`Volatile<T>` 包装，因此每次读都走 `readSettings(config)` 重新解包——volatile 引用是稳定对象、
+值就地更新，缓存会被烤死。客户端半 `inject: ['slots','locale','configForms']`，
+`controller.ts` 只依赖 `getSnapshot/subscribe/mutate` 三个方法，`read()` 每次都对
+`snapshot.value` 重新跑 `decodeConfig()`（表单拿到的已经是 host 侧 `plainConfig` 过的纯 JSON，
+不含 volatile 引用）。
+
+**(2) `.volatile()` 是硬性要求。** `dsh-settings` 的 `describe()` 会跳过所有"没有 volatile 字段"
+的 entry，一个都不带的 schema 永远不会被服务，客户端快照恒为 `unavailable`。因此 32 个顶层字段
+全部带 `.volatile()`；`snippets` 数组挂一处即可，数组元素字段不再嵌套 volatile
+（schemastery 会拒绝"volatile 字段外再套 volatile 路径"）。副产品是**任何设置提交都走
+volatile-only 快路径**：配置原地更新、fiber 不重挂载，所以改设置时 HTTP 路由不会撞上
+`webserver: duplicate prefix route`，文件夹监听器也不会被重建。
+
+**(3) 设置变更的两个信号，都要听。** 宿主半在外层 `ctx` 上同时订阅
+`loader/volatile-update`（官方 `dsh-experimental-speech-to-text` 的同款做法）与
+`settings/document-updated`，回调只做一件事：`watcher.sync()`。`sync()` 内部按
+`mode|path|intervalSec` 算一个 `appliedKey` 并与上次比对，key 没变就直接返回——这条去重是必须的，
+否则每次设置提交都会重新起一个轮询定时器，形成自激循环。两个监听器**必须注册在外层 `ctx`
+上**：loader 的 volatile 事件带着一个 `Context.filter`，只投递给"注册它的 ctx 的 fiber 正好等于
+发送方 entry 的 fiber"的钩子，而 `ctx.inject(...)` 里的 child ctx 属于另一个 fiber。
+
+**(4) 图标族改名。** 官方 primitives 把 `Icon<Name>Outline16` / `Outline14` 换成了
+`Icon<Name>OutlineRegular` / `OutlineMedium`（默认 size 从 16/14 统一为 14）。本插件 13 个
+图标全部改用 `OutlineRegular`；所有渲染点本来就传了显式 `size`，所以默认值的变更无影响。
+`test/client.test.mjs` 的 primitives stub 名单同步换成了实际引用的 13 个名字。
+
+**(5) 组件标签契约变化。** `DiffBlockLabels` 去掉了 `files: (count) => string`，新增了
+`codeLabel` / `wrapLabel` / `unwrapLabel`。字典里补了 `word.code` / `word.wrap` / `word.unwrap`
+（zh `代码` / `自动换行` / `取消自动换行`，en `Code` / `Wrap lines` / `Do not wrap lines`）。
+
+**(6) 依赖与清单。** devDependencies 全部钉到 `0.1.7-rc.1`，另加
+`@deepseek-ai/cordis-plugin-loader`（引入 `loader/volatile-update` 的事件类型声明）与
+`@deepseek-ai/cosmokit`（`Volatile` 类型与 `isVolatile`；schemastery 不转出 `Volatile`），
+cordis 从 `^4.0.2` 提到 `^4.0.4`。删掉了一条会遮蔽解析的裸 `schemastery` 依赖。
+`engines.dsh` 提到 `>=0.1.7-rc.1`（仅声明用途：0.1.7 的 loader 不读这个字段）。
+
+**(7) 本次验证结果。**
+
+- `npx tsc --noEmit`：0 error（改前基线 19 error，全在客户端半）。
+- `npm run check`：typecheck + 两个 bundle 构建 + `test/host.test.mjs` + `test/client.test.mjs` 全绿。
+- `test/host.test.mjs` 新增两组断言：挂载（`Config` 可调用、32 个字段解包后全是 volatile 引用、
+  `configure` 的 owner 确实是**外层** fiber、路由恰好注册一条、两个事件都订阅）；
+  以及"配置提交重新武装监听器"（别人的 ns 事件不反应、本 ns 事件把 `watch.active` 从 false 翻到
+  true、再改成 disabled 后翻回 false，且**没有产生任何回写**——空文件夹 + 空片段库时
+  `reconcile` 的 `changed` 为 false）。
+- `test/client.test.mjs`：`inject` 断言改为 `['slots','locale','configForms']`，
+  假 ctx 从 `settingsScope.bind` 换成 `configForms.get`。
+
+未做：还没有把插件装进 `web` profile 做实机加载验证（profile 改动属于工作区外的持久修改，
+需用户明确同意后再执行）。

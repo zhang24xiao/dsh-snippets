@@ -353,6 +353,9 @@ export const zh = {
   'word.loading': '加载中…',
   'word.unavailable': '不可用',
   'word.refresh': '刷新',
+  'word.code': '代码',
+  'word.wrap': '自动换行',
+  'word.unwrap': '取消自动换行',
 } as const
 
 /** One key of the `snippets` namespace. */
@@ -706,6 +709,9 @@ export const en: Record<SnippetsKey, string> = {
   'word.loading': 'Loading…',
   'word.unavailable': 'Unavailable',
   'word.refresh': 'Refresh',
+  'word.code': 'Code',
+  'word.wrap': 'Wrap lines',
+  'word.unwrap': 'Do not wrap lines',
 }
 
 /** Every key in the namespace; the plugin's `t` is bound to it. */

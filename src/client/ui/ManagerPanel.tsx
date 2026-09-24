@@ -12,14 +12,14 @@
 import { useMemo, useState } from 'react'
 import {
   Button,
-  IconChevronDownOutline14,
-  IconCopyOutline16,
-  IconEditOutline16,
-  IconPlusOutline16,
-  IconRefreshOutline16,
-  IconSearchOutline16,
-  IconSettingsOutline16,
-  IconTrashOutline16,
+  IconChevronDownOutlineRegular,
+  IconCopyOutlineRegular,
+  IconEditOutlineRegular,
+  IconPlusOutlineRegular,
+  IconRefreshOutlineRegular,
+  IconSearchOutlineRegular,
+  IconSettingsOutlineRegular,
+  IconTrashOutlineRegular,
   Input,
   Switch,
   Tooltip,
@@ -163,7 +163,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
           <span className={`${PREFIX}-search`}>
             <Input
               autoFocus
-              icon={<IconSearchOutline16 size={14} />}
+              icon={<IconSearchOutlineRegular size={14} />}
               value={keyword}
               placeholder={t('panel.search.placeholder')}
               aria-label={t('panel.search')}
@@ -179,7 +179,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
                 aria-label={t('panel.search')}
                 onClick={() => { setSearchOpen(true) }}
               >
-                <IconSearchOutline16 size={15} />
+                <IconSearchOutlineRegular size={15} />
               </button>
             </Tooltip>
             <span className={`${PREFIX}-head-spacer`} />
@@ -190,7 +190,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
                 aria-label={t('panel.settings')}
                 onClick={() => { onClose(); onOpenSettings() }}
               >
-                <IconSettingsOutline16 size={15} />
+                <IconSettingsOutlineRegular size={15} />
               </button>
             </Tooltip>
             <Tooltip label={t('panel.reload')} side="top">
@@ -200,7 +200,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
                 aria-label={t('panel.reload')}
                 onClick={() => { controller.reload() }}
               >
-                <IconRefreshOutline16 size={15} />
+                <IconRefreshOutlineRegular size={15} />
               </button>
             </Tooltip>
             <Tooltip label={t('panel.add')} side="top">
@@ -210,7 +210,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
                 aria-label={t('panel.add')}
                 onClick={addSnippet}
               >
-                <IconPlusOutline16 size={15} />
+                <IconPlusOutlineRegular size={15} />
               </button>
             </Tooltip>
           </>
@@ -239,7 +239,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
             </div>
             {searchOpen && keyword.trim() !== '' ? null : (
               <div className={`${PREFIX}-empty-action`}>
-                <Button variant="outline" size="sm" icon={<IconPlusOutline16 size={14} />} onClick={addSnippet}>
+                <Button variant="outline" size="sm" icon={<IconPlusOutlineRegular size={14} />} onClick={addSnippet}>
                   {t(tab === 'css' ? 'empty.add.css' : 'empty.add.js')}
                 </Button>
               </div>
@@ -278,7 +278,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
               >
                 {canReorder ? (
                   <span className={`${PREFIX}-row-handle`} title={t('panel.drag')} aria-hidden="true">
-                    <IconChevronDownOutline14 size={12} />
+                    <IconChevronDownOutlineRegular size={12} />
                   </span>
                 ) : null}
                 <button
@@ -303,7 +303,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
                     title={t('action.edit')}
                     onClick={() => { controller.openEditor(snippet.id, snippet.type) }}
                   >
-                    <IconEditOutline16 size={14} />
+                    <IconEditOutlineRegular size={14} />
                   </button>
                 ) : null}
                 {config.showDuplicateButton ? (
@@ -314,7 +314,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
                     title={t('action.duplicate')}
                     onClick={() => { void duplicate(snippet) }}
                   >
-                    <IconCopyOutline16 size={14} />
+                    <IconCopyOutlineRegular size={14} />
                   </button>
                 ) : null}
                 {config.showDeleteButton ? (
@@ -326,7 +326,7 @@ export function ManagerPanel({ controller, t, onClose, onOpenSettings }: Manager
                     title={t('action.delete')}
                     onClick={() => { void remove(snippet) }}
                   >
-                    <IconTrashOutline16 size={14} />
+                    <IconTrashOutlineRegular size={14} />
                   </button>
                 ) : null}
                 <Switch

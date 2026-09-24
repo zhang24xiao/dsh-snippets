@@ -14,8 +14,8 @@
  *    editor and a confirmation raised from the settings page renders in the
  *    same place as one raised from the panel.
  */
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { CONFIG_DEFAULTS } from '../shared/schema.ts'
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
+import { CONFIG_DEFAULTS, decodeConfig } from '../shared/schema.ts'
 import { createSnippetId } from '../shared/model.ts'
 import type { Snippet, SnippetType, SnippetsConfig } from '../shared/types.ts'
 import { PLUGIN_VERSION } from '../shared/version.ts'
@@ -159,7 +159,7 @@ export interface SnippetsController {
 
 /** Build the controller for one page load. */
 export function createController(
-  scope: SettingsScope<SnippetsConfig>,
+  form: ConfigForm<SnippetsConfig>,
   options: { fallback?: SnippetsConfig } = {},
 ): SnippetsController {
   const fallback = options.fallback ?? CONFIG_DEFAULTS
@@ -183,6 +183,10 @@ export function createController(
   let lastGood: SnippetsConfig | null = null
   /** The section the runtime was last projected from. */
   let synced: SnippetsConfig | null = null
+  /** Raw wire section that {@link decodedValue} was derived from. */
+  let decodedFrom: unknown
+  /** Decoded form of {@link decodedFrom}; `null` when it did not narrow. */
+  let decodedValue: SnippetsConfig | null = null
 
   /**
    * The current section, purely.
@@ -192,15 +196,29 @@ export function createController(
    * reconnect must not strip the user's CSS off the page. Only a namespace that
    * never produced a value falls back to the defaults.
    *
-   * The return value is referentially stable between commits, which is what
-   * `useSyncExternalStore` requires, and this function has NO side effects
-   * because React calls it during render.
+   * The shared form provider builds its controller without a narrowing decoder,
+   * so the wire section is validated against the schema but never shaped into
+   * this plugin's own types; `decodeConfig` does that here. Its result is
+   * memoized against the raw snapshot reference, because `decodeConfig`
+   * allocates a fresh object and the runtime projection below compares by
+   * identity.
+   *
+   * The return value is therefore referentially stable between commits, which
+   * is what `useSyncExternalStore` requires, and this function has NO side
+   * effects because React calls it during render.
    */
   const read = (): SnippetsConfig => {
-    const snapshot = scope.getSnapshot()
-    if (snapshot.status === 'ready' && snapshot.value !== undefined) {
-      lastGood = snapshot.value
-      return snapshot.value
+    const snapshot = form.getSnapshot()
+    const raw: unknown = snapshot.value
+    if (snapshot.status === 'ready' && raw !== undefined) {
+      if (raw !== decodedFrom) {
+        decodedFrom = raw
+        decodedValue = decodeConfig(raw) ?? null
+      }
+      if (decodedValue !== null) {
+        lastGood = decodedValue
+        return decodedValue
+      }
     }
     return lastGood ?? fallback
   }
@@ -235,7 +253,10 @@ export function createController(
 
   const mutate = async (ops: Array<{ op: 'set' | 'unset'; path: string[]; value?: unknown }>): Promise<void> => {
     log('write', ops)
-    await scope.mutate(ops as unknown as Parameters<typeof scope.mutate>[0])
+    const accepted = await form.mutate(ops as unknown as Parameters<typeof form.mutate>[0])
+    // A refusal means the Host rejected the write or the queue superseded it;
+    // the form reloads Host state on its own, so this is only diagnostics.
+    if (!accepted) log('write not accepted', ops)
   }
 
   const replaceSnippets = async (next: Snippet[], extra: Record<string, unknown> = {}): Promise<void> => {
@@ -251,8 +272,8 @@ export function createController(
 
   const controller: SnippetsController = {
     getConfig: read,
-    subscribe: (listener) => scope.subscribe(listener),
-    status: () => scope.getSnapshot().status,
+    subscribe: (listener) => form.subscribe(listener),
+    status: () => form.getSnapshot().status,
     ui,
     version: PLUGIN_VERSION,
     log,
@@ -394,9 +415,9 @@ export function createController(
   }
 
   // Project once for an already-resolved section, then on every commit. A
-  // namespace that resolves later still lands here, because the scope notifies
+  // namespace that resolves later still lands here, because the form notifies
   // its subscribers on the loading → ready transition.
-  scope.subscribe(syncRuntime)
+  form.subscribe(syncRuntime)
   syncRuntime()
 
   return controller

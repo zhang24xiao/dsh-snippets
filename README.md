@@ -64,6 +64,10 @@ The editor is CodeMirror 6 — line numbers, CSS/JS highlighting, search and rep
 
 ## Install
 
+Requires DeepSeek Harness `0.1.7-rc.1` or newer: 0.1.7 rewrote the settings line,
+and earlier harnesses expose neither `configForms` nor an entry-scoped settings
+API for a plugin to bind to.
+
 ```bash
 dsh plugin --profile web add github:zhang24xiao/dsh-snippets
 ```
@@ -170,9 +174,12 @@ pnpm run watch     # rebuild on change
 
 `npm run test` runs two suites:
 
-- `test/host.test.mjs` — namespace registration, the loopback fence on every
-  route, backups, the folder mirror (including id stability across scans), the
-  Gist import plan, and the content guards.
+- `test/host.test.mjs` — plugin mounting (the exported `Config` schema, the
+  volatile fields it resolves to, the settings presentation owner, the routes,
+  and the two config-commit signals), re-arming of the folder watcher when the
+  watch settings change, the loopback fence on every route, backups, the folder
+  mirror (including id stability across scans), the Gist import plan, and the
+  content guards.
 - `test/client.test.mjs` — loads the built `client/client.js` through
   `window.__ModuleLoader__.load` in jsdom and drives the runtime: an enabled CSS
   snippet produces exactly one `<style>`, an enabled JS snippet runs exactly

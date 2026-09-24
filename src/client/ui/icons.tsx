@@ -3,7 +3,7 @@
  *
  * Hand-drawn rather than taken from `@deepseek-ai/dsh-client-ui-primitives`,
  * for two reasons: the shared set has no `</>` mark — its nearest neighbour,
- * `IconCodeOutline16`, is drawn as a `#` — and the SiYuan original this plugin
+ * `IconCodeOutlineRegular`, is drawn as a `#` — and the SiYuan original this plugin
  * mirrors puts a literal `</>` on its toolbar button. The outline stroke style
  * matches the neighbouring glyphs, and the colour rides `currentColor` so the
  * trigger's hover and active states carry through.

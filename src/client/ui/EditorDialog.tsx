@@ -15,8 +15,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button,
-  IconRefreshOutline16,
-  IconTrashOutline16,
+  IconRefreshOutlineRegular,
+  IconTrashOutlineRegular,
   Input,
   Modal,
   Switch,
@@ -291,14 +291,14 @@ export function EditorDialog({ controller, t, request }: EditorDialogProps) {
             {previewOn.current ? t('editor.preview.stop') : t('editor.preview.apply')}
           </Button>
         ) : null}
-        <Button variant="ghost" size="sm" icon={<IconRefreshOutline16 size={14} />} onClick={format}>
+        <Button variant="ghost" size="sm" icon={<IconRefreshOutlineRegular size={14} />} onClick={format}>
           {t('action.format')}
         </Button>
         {existing !== null && config.showDeleteButton ? (
           <Button
             variant="ghost"
             size="sm"
-            icon={<IconTrashOutline16 size={14} />}
+            icon={<IconTrashOutlineRegular size={14} />}
             onClick={() => {
               void (async () => {
                 if (config.confirmDelete) {

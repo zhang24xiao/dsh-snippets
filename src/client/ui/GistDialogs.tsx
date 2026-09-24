@@ -15,7 +15,7 @@ import { useCallback, useMemo, useState } from 'react'
 import {
   Button,
   DiffBlock,
-  IconLoadingOutline16,
+  IconLoadingOutlineRegular,
   Input,
   Modal,
   Switch,
@@ -152,7 +152,7 @@ export function GistImportDialog({ controller, t, onClose }: GistDialogProps) {
           variant="outline"
           size="sm"
           disabled={busy || url.trim() === ''}
-          icon={busy ? <IconLoadingOutline16 size={14} /> : undefined}
+          icon={busy ? <IconLoadingOutlineRegular size={14} /> : undefined}
           onClick={fetchGist}
         >
           {t('action.fetch')}
@@ -237,7 +237,9 @@ export function GistImportDialog({ controller, t, onClose }: GistDialogProps) {
                   expandAria: (hidden: number) => t('gist.import.compare') + ` (+${String(hidden)})`,
                   collapse: t('gist.import.compare'),
                   expand: (hidden: number) => t('gist.import.compare') + ` (+${String(hidden)})`,
-                  files: (count: number) => String(count),
+                  codeLabel: t('word.code'),
+                  wrapLabel: t('word.wrap'),
+                  unwrapLabel: t('word.unwrap'),
                 }}
               />
             )}
@@ -351,7 +353,7 @@ export function GistPublishDialog({ controller, t, onClose }: GistDialogProps) {
             variant="primary"
             size="sm"
             disabled={busy || (needsCustomUrl && customUrl.trim() === '')}
-            icon={busy ? <IconLoadingOutline16 size={14} /> : undefined}
+            icon={busy ? <IconLoadingOutlineRegular size={14} /> : undefined}
             onClick={publish}
           >
             {t('action.publish')}
