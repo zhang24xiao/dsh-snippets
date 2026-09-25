@@ -4,10 +4,9 @@ CSS and JS code snippets for the [DeepSeek Harness](https://github.com/deepseek-
 
 A full-width quick toggle in the sidebar footer, aligned column for column with
 the **Settings** row above it (a `</>` glyph on the left, the name on the right),
-opens a manager panel, and
-**Settings → Code Snippets** is an independent page with the full set of
-preferences. Enabled **CSS** is injected into the page immediately; enabled
-**JS** runs after the page loads.
+opens a manager panel, and the plugin's page in the **Plugins** manager carries a
+collapsible settings card with the full set of preferences. Enabled **CSS** is
+injected into the page immediately; enabled **JS** runs after the page loads.
 
 > Inspired by [TCOTC/snippets](https://github.com/TCOTC/snippets), the SiYuan
 > note-taking app's snippet manager, and adapted to the DSH plugin contract.
@@ -20,8 +19,6 @@ The quick toggle fills a whole row of the sidebar footer, exactly like Settings,
 
 ![The snippet manager panel, opened from the sidebar footer beside Settings](./assets/screenshot-1-panel.png)
 
-The plugin's own page sits in the **Settings** navigation, one section among the others:
-
 The editor is CodeMirror 6 — line numbers, CSS/JS highlighting, search and replace — sized to the viewport, with live CSS preview:
 
 ![The snippet editor, showing a CSS snippet with syntax highlighting](./assets/screenshot-3-editor.png)
@@ -32,7 +29,8 @@ The editor is CodeMirror 6 — line numbers, CSS/JS highlighting, search and rep
 
 - CSS / JS tabs with live counts, one master switch per type, and search across
   titles, code, or both
-- Its own page in the Settings navigation, one entry among the other sections
+- Its own settings card on the plugin's page in the **Plugins** manager, opened
+  from a chevron and keyed by the package name
 - Add, edit, duplicate, delete, enable/disable, and drag to reorder
 - Ten sort orders (custom, enabled-first, title A→Z / natural, oldest/newest)
 - Per-row edit / duplicate / delete buttons, each individually hideable
@@ -87,7 +85,7 @@ The built `lib/index.js` and `client/client.js` are committed, so a
 | Surface | DSH seat |
 | --- | --- |
 | Quick toggle + manager panel | `sidebar.footer.action`, a full-width row: `</>` glyph + the name |
-| Settings | `settings.section`, the plugin's own page in the settings navigation |
+| Settings | `plugins.bundle.config`, the collapsible card on this package's page in the Plugins manager |
 | Editors, confirmations, toasts | `shell.overlay` |
 | Snippet library | the `dsh-snippets` namespace of the profile's settings document |
 | Backups, Gist token, watcher memory | `$DSH_HOME/dsh-snippets/` |

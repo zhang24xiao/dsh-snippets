@@ -3,7 +3,7 @@
 给 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web 界面用的 CSS / JS 代码片段管理器。
 
 侧边栏底部有一个整行的快捷开关，与**设置**行同一列对齐（左侧 `</>` 图标，右侧「代码片段」），点开就是管理面板；
-**设置 → 代码片段管理器** 是一个独立的设置页，包含全部偏好项。启用的 **CSS** 会立即注入到页面，启用的 **JS** 会在页面加载后执行。
+本插件在**插件管理**里自己的页面上带一张可折叠的设置卡片，包含全部偏好项。启用的 **CSS** 会立即注入到页面，启用的 **JS** 会在页面加载后执行。
 
 > 参考思源笔记的 [TCOTC/snippets](https://github.com/TCOTC/snippets)，按 DSH 插件契约重写。
 
@@ -15,8 +15,6 @@
 
 ![从侧栏底部打开的代码片段管理面板](./assets/screenshot-1-panel.png)
 
-**设置** 导航里是本插件的独立页面，与其他设置分节并列：
-
 编辑器是 CodeMirror 6 —— 行号、CSS/JS 高亮、搜索替换 —— 按视口自适应，并支持 CSS 实时预览：
 
 ![代码片段编辑器，正在编辑一段 CSS 并带语法高亮](./assets/screenshot-3-editor.png)
@@ -26,7 +24,7 @@
 **管理代码片段**
 
 - CSS / JS 标签页与实时计数，每种类型一个总开关，搜索可覆盖标题、代码或两者
-- 在设置导航里有自己的页面，与其他分节并列
+- 在**插件管理**里本插件自己的页面上有一张设置卡片，点开折叠箭头即可展开
 - 新增、编辑、创建副本、删除、启用/停用、拖拽排序
 - 十种排序方式（自定义、已开启优先、名称字母/自然序、创建时间等）
 - 每行的编辑 / 副本 / 删除按钮都可以单独隐藏
@@ -71,7 +69,7 @@ dsh plugin --profile web add link:$PWD/dsh-snippets
 | 界面 | DSH 席位 |
 | --- | --- |
 | 快捷开关 + 管理面板 | `sidebar.footer.action`，展开时是一整行：`</>` 图标 + 「代码片段」 |
-| 设置 | `settings.section` —— 插件在设置导航里的独立页面 |
+| 设置 | `plugins.bundle.config` —— 插件管理里本包页面上的可折叠设置卡片 |
 | 编辑器、确认框、提示条 | `shell.overlay` |
 | 代码片段库 | profile 设置文档里的 `dsh-snippets` 命名空间 |
 | 备份、Gist Token、监听映射 | `$DSH_HOME/dsh-snippets/` |

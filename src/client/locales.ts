@@ -14,16 +14,16 @@
 /** The Chinese dictionary, and the key set the English one must match. */
 export const zh = {
   /* ── shell ──────────────────────────────────────────────────────── */
-  'section.title': '代码片段管理器',
-  'section.description':
-    '用 CSS 与 JS 代码片段改造 DSH Web 界面：启用的 CSS 立即生效，启用的 JS 在页面加载后执行。',
+  'card.title': '代码片段设置',
+  'card.description':
+    '片段库、注入行为、本地文件夹监听与 Gist 同步。',
   'trigger.label': '代码片段',
   'trigger.open': '打开代码片段管理器',
   'panel.title': '代码片段管理器',
   'panel.close': '关闭',
   'panel.search': '搜索代码片段',
   'panel.search.placeholder': '搜索…',
-  'panel.settings': '打开设置中的「代码片段管理器」',
+  'panel.settings': '在「插件」中打开代码片段设置',
   'panel.reload': '重新加载界面',
   'panel.add': '添加代码片段',
   'panel.footer.count': '{total} 个片段 · {enabled} 个已启用',
@@ -363,16 +363,16 @@ export type SnippetsKey = keyof typeof zh
 
 /** The English dictionary; the type pins it to the exact Chinese key set. */
 export const en: Record<SnippetsKey, string> = {
-  'section.title': 'Code Snippets',
-  'section.description':
-    'Reshape the DSH web UI with CSS and JS snippets: enabled CSS applies immediately, enabled JS runs after the page loads.',
+  'card.title': 'Snippet settings',
+  'card.description':
+    'Library, injection behavior, folder watch, and Gist sync.',
   'trigger.label': 'Code snippets',
   'trigger.open': 'Open the code snippet manager',
   'panel.title': 'Code Snippets',
   'panel.close': 'Close',
   'panel.search': 'Search snippets',
   'panel.search.placeholder': 'Search…',
-  'panel.settings': 'Open Code Snippets in Settings',
+  'panel.settings': 'Open the snippet settings in Plugins',
   'panel.reload': 'Reload the interface',
   'panel.add': 'Add a snippet',
   'panel.footer.count': '{total} snippets · {enabled} enabled',

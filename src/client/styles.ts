@@ -485,33 +485,121 @@ body[data-ds-dark-theme] .dsn-code-scope {
   --dsn-code-var: #e5c07b;
 }
 
-/* ── the settings page ─────────────────────────────────────────────── */
+/* ── the settings card (Plugins manager, plugins.bundle.config seat) ── */
 
 /*
- * The page the settings navigation mounts for this plugin. The seat is
- * settings.section: it renders a contribution inside the panel's content column
- * and paints no copy and no chrome of its own, so the page owns its heading and
- * its description; everything below them belongs to SettingsBody.
+ * The official Plugins page draws the bundle's icon, name, version and switch,
+ * then mounts this card between the description and the component list. The
+ * seat supplies no chrome, so the card owns its box, its header and its
+ * collapse.
+ *
+ * Geometry, radius and tokens are copied from the card the neighbouring
+ * remote-access plugin puts in the same seat (and from the official cards it
+ * aligns with): same 12px radius, same 14px/16px header padding, same semantic
+ * label/border tokens, and every token carries a literal fallback because the
+ * theme plugin may not have painted before this card renders.
+ *
+ * The card collapses by default, exactly like that neighbour: an open plugin
+ * page should read as name + description + one line of settings, not as a wall
+ * of controls.
  */
-.${PREFIX}-settings {
+.${PREFIX}-card {
+  border: 1px solid var(--dsw-alias-border-l2, rgb(0 0 0 / 12%));
+  background: var(--dsw-alias-bg-layer-3, #fff);
+  border-radius: 12px;
+  list-style: none;
+  transition: border-color 0.16s, background 0.16s;
+}
+.${PREFIX}-card:hover {
+  border-color: var(--dsw-alias-label-dimmed, rgb(0 0 0 / 24%));
+}
+.${PREFIX}-card[data-open='true'] {
+  background: var(--dsw-alias-bg-layer-2, #f7f7f8);
+  border-color: var(--dsw-alias-label-dimmed, rgb(0 0 0 / 24%));
+}
+.${PREFIX}-card-header {
+  appearance: none;
+  /* The page does not force a global border-box, so width:100% + padding would
+     stretch the row past the card border. */
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.${PREFIX}-card-summary .${PREFIX}-card-header { cursor: default; }
+.${PREFIX}-card-header:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, #4b6bfb);
+  outline-offset: -2px;
+}
+.${PREFIX}-card-text {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: 0;
 }
-.${PREFIX}-settings-title {
-  margin: 0;
+.${PREFIX}-card-name {
   color: var(--dsw-alias-label-primary, #0f1115);
   font-size: 15px;
   font-weight: 600;
-  line-height: 22px;
+  line-height: 1.4;
 }
-.${PREFIX}-settings-desc {
-  margin: 4px 0 0;
-  color: var(--dsw-alias-label-tertiary, #81858c);
+.${PREFIX}-card-desc {
+  /* Secondary, not tertiary: skins whose tertiary token is tuned for large
+     print leave small hint text below readable contrast. */
+  color: var(--dsw-alias-label-secondary, #61666b);
   font-size: 13px;
   line-height: 1.5;
 }
+.${PREFIX}-card-chevron {
+  display: inline-flex;
+  flex: none;
+  color: var(--dsw-alias-label-tertiary, #81858c);
+  transition: transform 0.16s;
+}
+.${PREFIX}-card[data-open='true'] .${PREFIX}-card-chevron { transform: rotate(180deg); }
+.${PREFIX}-card-body {
+  margin: 0 16px;
+  border-top: 1px solid var(--dsw-alias-border-l2, rgb(0 0 0 / 12%));
+  padding-bottom: 8px;
+}
 
-/* ── the settings body (inside the section page) ───────────────────── */
+/*
+ * Flatten the body's group boxes: they were cards on a settings page of their
+ * own, but inside this card they would nest a border inside a border. Scoped to
+ * the card body so SettingsBody stays reusable, and so the groups still read as
+ * groups through their titles and the separator between them.
+ */
+.${PREFIX}-card-body .${PREFIX}-group {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.${PREFIX}-card-body .${PREFIX}-group + .${PREFIX}-group {
+  border-top: 1px solid var(--dsw-alias-border-l1, rgb(0 0 0 / 8%));
+}
+.${PREFIX}-card-body .${PREFIX}-group-title {
+  border-bottom: 0;
+  background: transparent;
+  padding: 12px 0 0;
+}
+.${PREFIX}-card-body .${PREFIX}-page { padding-top: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .${PREFIX}-card,
+  .${PREFIX}-card-chevron { transition: none; }
+}
+
+/* ── the settings body (inside the card) ───────────────────────────── */
 
 .${PREFIX}-page {
   display: flex;

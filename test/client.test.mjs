@@ -117,7 +117,7 @@ assert.equal(typeof mod.apply, 'function')
 /* ── a fake cordis context ─────────────────────────────────────────── */
 
 const listeners = new Set()
-/** Locale subscribers: a `settings.section` label re-registers on a switch. */
+/** Locale subscribers: every seat this plugin registers keeps its own copy. */
 const localeListeners = new Set()
 let snapshotValue = { ...defaults() }
 const writes = []
@@ -170,21 +170,25 @@ mod.apply(ctx)
 const seats = registrations.map((entry) => entry.options.name)
 assert.deepEqual(
   seats.sort(),
-  ['settings.section', 'shell.overlay', 'sidebar.footer.action'],
+  ['plugins.bundle.config', 'shell.overlay', 'sidebar.footer.action'],
   'all three seats must be registered',
 )
 const footer = registrations.find((entry) => entry.options.name === 'sidebar.footer.action')
 assert.equal(footer.options.order, 10, 'the default footer position is the right-hand side')
 assert.equal(footer.options.locale, 'snippets')
-// The settings page lives in the settings navigation, whose list slot keys one
-// entry per registrant by `id`. The per-namespace card seat this surface used to
-// claim (`settings.plugin.item`) is gone, and a registration against it is
-// dropped without a word — so a regression that reintroduces it must fail right
-// here instead of silently rendering nothing.
-const page = registrations.find((entry) => entry.options.name === 'settings.section')
-assert.equal(page.options.id, 'dsh-snippets', 'the section is identified by the namespace it edits')
-assert.equal(page.options.order, 30, 'the section keeps its place in the settings nav')
-assert.equal(typeof page.options.label, 'string', 'the nav label is resolved once, at registration')
+// The settings now live on this package's page in the official Plugins manager:
+// a keyed seat the page dispatches by the bundle's npm package name. A key that
+// does not equal the installed package's name is dropped without a word and the
+// page renders no card at all, so the key is asserted against the manifest's own
+// name — and the retired seats must stay retired.
+const card = registrations.find((entry) => entry.options.name === 'plugins.bundle.config')
+assert.equal(card.options.key, 'dsh-snippets', 'the card is keyed by the bundle it configures')
+assert.equal(card.options.locale, 'snippets', 'the card renders this plugin\'s dictionary')
+assert.equal(
+  registrations.some((entry) => entry.options.name === 'settings.section'),
+  false,
+  'the retired settings page seat must not be registered',
+)
 assert.equal(
   registrations.some((entry) => entry.options.name === 'settings.plugin.item'),
   false,
@@ -264,7 +268,7 @@ assert.equal(document.head.querySelector(`style[data-dsh-snippet="${cssId}"]`).t
 // missing export or a bad prop shape fails here rather than in the GUI.
 const translate = ctx.locale.bind('snippets')
 const controllerRef = registrations
-  .find((item) => item.options.name === 'settings.section')
+  .find((item) => item.options.name === 'plugins.bundle.config')
   .options.inject().controller
 
 function renderSeat(seatName, extraProps = {}) {
@@ -349,10 +353,14 @@ publish({
 // The collapsed rail shim must ship: the shell keeps `footerActions` a row when
 // collapsed, which pushes a second plugin's icon out of the 56px rail.
 const sheetText = document.head.querySelector('style[data-dsh-snippets-ui]')?.textContent ?? ''
-// The settings section paints no copy of its own, so the page's own heading and
-// description hooks must ship — a section without them would render bare rows.
-assert.match(sheetText, /\.dsn-settings-title\s*\{[^}]*font-size: 15px;\s*font-weight: 600/, 'the page heading matches the neighbouring sections')
-assert.match(sheetText, /\.dsn-settings-desc\s*\{[^}]*color: var\(--dsw-alias-label-tertiary/, 'the page description uses the caption colour')
+// The Plugins page paints no chrome around this seat, so the card's own header,
+// description and collapse hooks must ship — a card without them would render
+// bare controls with no way to tell what they configure.
+assert.match(sheetText, /\.dsn-card\s*\{[^}]*border-radius: 12px/, 'the card matches the neighbouring cards\' radius')
+assert.match(sheetText, /\.dsn-card-name\s*\{[^}]*font-size: 15px;\s*font-weight: 600/, 'the card title matches the neighbouring cards')
+assert.match(sheetText, /\.dsn-card-desc\s*\{[^}]*color: var\(--dsw-alias-label-secondary/, 'the card description uses the readable secondary colour')
+assert.match(sheetText, /\.dsn-card\[data-open='true'\] \.dsn-card-chevron \{ transform: rotate\(180deg\); \}/, 'the chevron must flip when the card opens')
+assert.match(sheetText, /\.dsn-card-body \.dsn-group\s*\{[^}]*border: 0/, 'group boxes are flattened inside the card instead of nesting borders')
 assert.match(
   sheetText,
   /\[class\*='_collapsed'\] \[class\*='_footerActions'\]/,
@@ -420,21 +428,24 @@ assert.match(
   'the code area must absorb the leftover height rather than a fixed 46vh',
 )
 
-// The shell mounts a section whole and paints no copy of its own, so the page is
-// rendered into a real DOM: its heading, its description and every group are put
-// under test here rather than assumed to arrive from the shell.
-const pageHtml = await renderSettingsPage(registrations, translate)
-assert.match(pageHtml, /dsn-settings-title/, 'the page renders its own heading')
-assert.match(pageHtml, /section\.title/, 'the heading carries the section title')
-assert.match(pageHtml, /section\.description/, 'the page carries the description')
+// The Plugins page mounts the card and paints no chrome around it, so the card
+// is rendered into a real DOM: it must arrive collapsed, and opening its header
+// must reveal every group of the settings body.
+const { collapsed, expanded } = await renderSettingsCard(registrations, translate)
+assert.match(collapsed, /dsn-card-name/, 'the card renders its own header')
+assert.match(collapsed, /card\.title/, 'the header carries the card title')
+assert.match(collapsed, /card\.description/, 'the header carries the one-line description')
+assert.match(collapsed, /aria-expanded="false"/, 'the card must start collapsed')
+assert.doesNotMatch(collapsed, /group\.general/, 'a collapsed card must not render the body')
 
 for (const group of [
   'group.general', 'group.menu', 'group.editor', 'group.behavior',
   'group.watch', 'group.data', 'group.gist', 'group.about',
 ]) {
-  assert.match(pageHtml, new RegExp(group), `the page must render the ${group} group`)
+  assert.match(expanded, new RegExp(group), `opening the card must render the ${group} group`)
 }
-assert.match(pageHtml, /set\.data\.summary/, 'the data group reports the library size')
+assert.match(expanded, /set\.data\.summary/, 'the data group reports the library size')
+assert.match(expanded, /aria-expanded="true"/, 'the open header must report its state')
 
 assert.equal(renderSeat('shell.overlay'), '', 'an empty overlay must contribute no markup')
 
@@ -460,26 +471,31 @@ assert.equal(
 console.log('client smoke test passed')
 
 /**
- * Render the settings page into a real DOM, so the page's own heading, its
- * description and every group are exercised rather than assumed.
- * @returns the mounted markup.
+ * Mount the settings card into a real DOM, both before and after its header is
+ * clicked, so the collapse and the whole body are exercised rather than assumed.
+ * @returns the collapsed and the expanded markup.
  */
-async function renderSettingsPage(entries, translate) {
+async function renderSettingsCard(entries, translate) {
   const act = react.act ?? (await import('react-dom/test-utils')).act
   globalThis.IS_REACT_ACT_ENVIRONMENT = true
-  const entry = entries.find((item) => item.options.name === 'settings.section')
+  const entry = entries.find((item) => item.options.name === 'plugins.bundle.config')
   const host = document.createElement('div')
   document.body.appendChild(host)
   const root = createRoot(host)
 
   await act(async () => {
-    root.render(createElement(entry.component, { ...entry.options.inject(), t: translate }))
+    root.render(createElement(entry.component, { ...entry.options.inject(), t: translate, view: 'page' }))
   })
-  const html = host.innerHTML
+  const collapsed = host.innerHTML
+
+  const header = host.querySelector('button')
+  assert.ok(header !== null, 'the collapsed card must render a header button')
+  await act(async () => { header.click() })
+  const expanded = host.innerHTML
 
   await act(async () => { root.unmount() })
   host.remove()
-  return html
+  return { collapsed, expanded }
 }
 
 /** The shape of the settings section, mirroring `shared/schema.ts`. */

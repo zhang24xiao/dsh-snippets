@@ -25,7 +25,6 @@ import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useAnchoredPosition, useDismissOnOutsidePointer } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnippetsController } from '../controller.ts'
-import { openSettingsSection } from '../deep-link.ts'
 import { PREFIX } from '../styles.ts'
 import { CodeGlyph } from './icons.tsx'
 import { ManagerPanel } from './ManagerPanel.tsx'
@@ -35,6 +34,12 @@ import { useConfig, type T } from './shared.tsx'
 export interface FooterEntryProps {
   controller: SnippetsController
   t: T
+  /**
+   * Open this package's page in the official Plugins manager with its settings
+   * card expanded. Owned by `index.ts`, which resolves the layout service the
+   * panel switch needs.
+   */
+  openSettings: () => void
   /** Whether the sidebar renders wide content (false = 56px rail). */
   wide: boolean
 }
@@ -43,7 +48,7 @@ export interface FooterEntryProps {
  * Render the footer trigger and its panel.
  * @param props - see {@link FooterEntryProps}.
  */
-export function FooterEntry({ controller, t, wide }: FooterEntryProps) {
+export function FooterEntry({ controller, t, openSettings, wide }: FooterEntryProps) {
   const config = useConfig(controller)
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -106,8 +111,8 @@ export function FooterEntry({ controller, t, wide }: FooterEntryProps) {
                 t={t}
                 onClose={() => { setOpen(false) }}
                 onOpenSettings={() => {
-                  // Best effort; see deep-link.ts for why there is no call.
-                  openSettingsSection(rootRef.current, t('section.title'))
+                  // Best effort; see deep-link.ts for what it can and cannot do.
+                  openSettings()
                 }}
               />
             </div>,

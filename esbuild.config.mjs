@@ -36,8 +36,16 @@ const CLIENT_EXTERNAL = [
 
 const watch = process.argv.includes('--watch')
 
-/** The manifest version, inlined so the bundles never carry the whole file. */
-const define = { __DSH_SNIPPETS_VERSION__: JSON.stringify(pkg.version) }
+/**
+ * Manifest facts inlined so the bundles never carry the whole file: the
+ * version, and the package name — the latter is the key the official Plugins
+ * page dispatches `plugins.bundle.config` on, so the settings card can never
+ * drift from the package whose page renders it.
+ */
+const define = {
+  __DSH_SNIPPETS_VERSION__: JSON.stringify(pkg.version),
+  __DSH_SNIPPETS_PACKAGE__: JSON.stringify(pkg.name),
+}
 
 /** @type {import('esbuild').BuildOptions} */
 const hostOptions = {

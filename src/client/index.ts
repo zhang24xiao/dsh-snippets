@@ -6,8 +6,12 @@
  *  - `sidebar.footer.action` — the `</>` quick toggle and its manager panel,
  *    in the same sidebar-foot row `@linxin666/dsh-remote-web-ui` uses (the seat
  *    the SiYuan original puts its top-bar button in, translated to DSH);
- *  - `settings.section` — an independent "Code Snippets" page in the settings
- *    navigation, which is the live settings extension point in DSH 0.1.7;
+ *  - `plugins.bundle.config` — the collapsible settings card on this package's
+ *    page in the official **Plugins** manager, keyed by the package name so the
+ *    page dispatches it to this bundle (the seat the same remote-access plugin
+ *    puts its own card in). The settings used to be a page of their own in the
+ *    Settings navigation; they now live here, and the manager panel's gear opens
+ *    them through `deep-link.ts`;
  *  - `shell.overlay` — the editors, confirmations and toasts, so a dialog
  *    survives the panel closing and renders above every column.
  *
@@ -28,13 +32,34 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import { NAMESPACE } from '../shared/schema.ts'
 import type { FooterPosition, SnippetsConfig } from '../shared/types.ts'
+import { PLUGIN_PACKAGE } from '../shared/version.ts'
 import { createController, type SnippetsController } from './controller.ts'
+import { openPluginSettings } from './deep-link.ts'
 import { en, zh } from './locales.ts'
 import { installGlobal } from './apply.ts'
 import { STYLE_ATTRIBUTE, UI_CSS } from './styles.ts'
 import { FooterEntry } from './ui/FooterEntry.tsx'
 import { OverlayHost } from './ui/OverlayHost.tsx'
-import { SettingsPage } from './ui/SettingsPage.tsx'
+import { PluginSettingsCard, type PluginConfigViewProps } from './ui/PluginSettingsCard.tsx'
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface SlotMap {
+    /**
+     * One bundle's own configuration on its page in the official Plugins
+     * manager, keyed by the bundle's npm package name.
+     *
+     * Declared here rather than imported from the manager package: cross-plugin
+     * collaboration goes through cordis services, a value import of another
+     * plugin's package fails the client bundle-purity gate, and this shape is
+     * the whole of what the manager passes (the page always asks for `'page'`).
+     */
+    'plugins.bundle.config': {
+      kind: 'keyed'
+      scope: 'root'
+      owner: PluginConfigViewProps
+    }
+  }
+}
 
 /** Cordis plugin name; the loader keys the browser entry on it. */
 export const name = 'dsh-snippets'
@@ -100,6 +125,22 @@ export function apply(ctx: ClientContext): void {
   // No bound `t` here: every seat declares `locale: NS`, and the render
   // machinery synthesizes the typed `t` seat for each component from that.
 
+  /**
+   * Open this package's page in the official Plugins manager with its settings
+   * card expanded — what the manager panel's gear button does.
+   *
+   * The layout service is resolved lazily: it is what provides `selectPanel`,
+   * and while the manager's panel id is registered long before anyone clicks,
+   * the service need not have been provided when this plugin applies.
+   */
+  const openSettings = (): void => {
+    const layout = ctx.get('layout') as { selectPanel?: (panelId: string) => void } | undefined
+    const selectPanel = typeof layout?.selectPanel === 'function'
+      ? (panelId: string) => { layout?.selectPanel?.(panelId) }
+      : undefined
+    openPluginSettings({ packageName: PLUGIN_PACKAGE, selectPanel })
+  }
+
   /* ── the sidebar-foot quick toggle ──────────────────────────────── */
 
   ctx.slots.inject('sidebar.footer.action', () => {
@@ -118,7 +159,7 @@ export function apply(ctx: ClientContext): void {
             id: NAMESPACE,
             order: orderFor(position),
             locale: NS,
-            inject: () => ({ controller }),
+            inject: () => ({ controller, openSettings }),
           },
           FooterEntry,
         )
@@ -137,44 +178,29 @@ export function apply(ctx: ClientContext): void {
     }
   })
 
-  /* ── the page in the settings navigation ───────────────────────── */
+  /* ── the settings card on the package's page in the Plugins manager ─ */
 
-  // `settings.section` renders one entry in the panel's left nav and mounts the
-  // contribution inside its content column. A nav label is read once at
-  // registration, so a locale switch re-registers the entry rather than leaving
-  // a stale label behind.
-  ctx.slots.inject('settings.section', () => {
-    let dispose: (() => void) | undefined
-    let appliedLabel: string | null = null
-
-    const sync = (): void => {
-      const label = ctx.locale.bind(NS)('section.title')
-      if (dispose !== undefined && appliedLabel === label) return
-      dispose?.()
-      try {
-        dispose = ctx.slots.register(
-          {
-            name: 'settings.section',
-            id: NAMESPACE,
-            order: 30,
-            label,
-            locale: NS,
-            inject: () => ({ controller }),
-          },
-          SettingsPage,
-        )
-        appliedLabel = label
-      } catch {
-        dispose = undefined
-      }
-    }
-
-    const offLocale = ctx.locale.subscribe(sync)
-    sync()
-    return () => {
-      offLocale()
-      dispose?.()
-      dispose = undefined
+  // `plugins.bundle.config` is a keyed seat: the manager's page keys one entry
+  // per bundle by the bundle's npm package name and renders it on that bundle's
+  // detail page. The key is read from the build manifest, since a key that does
+  // not equal the installed package's name is dropped without a word and would
+  // leave the page with no card at all. The seat's own page draws the icon,
+  // title, version and switch; the card owns the header, body and collapse.
+  ctx.slots.inject('plugins.bundle.config', () => {
+    try {
+      return ctx.slots.register(
+        {
+          name: 'plugins.bundle.config',
+          key: PLUGIN_PACKAGE,
+          locale: NS,
+          inject: () => ({ controller }),
+        },
+        PluginSettingsCard,
+      )
+    } catch {
+      // A refused registration leaves the user without a card; the plugin's
+      // other surfaces, and the manager panel's own controls, still work.
+      return () => {}
     }
   })
 

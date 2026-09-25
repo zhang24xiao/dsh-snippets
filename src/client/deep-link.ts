@@ -1,82 +1,133 @@
 /**
- * Best-effort navigation from the manager panel's gear button to this plugin's
- * own page inside the official settings panel.
+ * Opening this plugin's settings card from the snippet manager panel.
+ *
+ * The settings used to live on a page of their own in the **Settings**
+ * navigation, and the panel's gear button walked the settings DOM to that
+ * page. They now live on this package's page inside the official **Plugins**
+ * manager (seat `plugins.bundle.config`), so the gear has two things to do:
+ * select the Plugins main panel, and open this bundle's detail page on it.
  *
  * ## Why this is best-effort rather than a call
  *
- * The settings shell keeps its open state and active section id in
- * component-local state (`ui-settings-general`'s `SettingsRoot`), and exposes
- * no service for another plugin to drive them. There is therefore no supported
- * "open settings at section X" call.
+ * Selecting the main panel IS a supported call — `ctx.layout.selectPanel`
+ * takes the registered panel id, and the manager's own id is the stable
+ * `plugins` its sidebar entry is registered under. Opening one *bundle's*
+ * detail page is not: the manager keeps the open row in component-local state
+ * and exposes no service, so the only stable handle is the accessibility
+ * contract of the list:
  *
- * What IS stable is the accessibility contract, which is a public interface:
+ *  - every bundle card's title is a `button` labelled with the package name
+ *    (`packageText.title` is `pkg.name` for a third-party package), and
+ *  - clicking it opens that bundle's page, which mounts the settings card.
  *
- *  - the sidebar-foot trigger is `button[aria-haspopup="dialog"]` inside the
- *    same `footArea` container our own entry lives in;
- *  - the open panel is `[role="dialog"][aria-modal="true"]`, whose `<nav>`
- *    holds one `<button>` per registered section, labelled with the section's
- *    registered `label` — which is our own localized string.
+ * Both steps are wrapped: if the manager changes shape, the panel still opens
+ * and the user picks the bundle themselves. Nothing else in the plugin depends
+ * on this.
  *
- * Both steps are wrapped: if the shell changes, the click does nothing and the
- * user opens Settings themselves. Nothing else in the plugin depends on this.
+ * ## Marking the card open
+ *
+ * The card mounts only after the manager page renders it, i.e. after the click
+ * below, so a plain "set open" would have nothing to set. The module therefore
+ * keeps one pending mark: `requestSettingsOpen()` raises it and notifies any
+ * card already on screen; `takeSettingsOpen()` consumes it on the first mount.
+ * A card that mounts later still finds it.
  */
 
-/** How long to keep looking for the section row after opening the panel. */
-const SECTION_POLL_MS = 900
-/** Poll cadence while looking for the section row. */
-const SECTION_POLL_STEP_MS = 60
+/** How long to keep looking for this bundle's card in the manager list. */
+const CARD_POLL_MS = 1500
+/** Poll cadence while looking for the card. */
+const CARD_POLL_STEP_MS = 60
+
+/** The official Plugins manager's main-panel id (its sidebar entry's own id). */
+const PLUGINS_PANEL_ID = 'plugins'
+
+/** Pending open mark, consumed by the card's first mount. */
+let pendingOpen = false
+/** Cards currently on screen, notified when the mark is raised. */
+const openListeners = new Set<() => void>()
+
+/** Mark the settings card for expansion, now or when it next mounts. */
+export function requestSettingsOpen(): void {
+  pendingOpen = true
+  for (const listener of Array.from(openListeners)) listener()
+}
 
 /**
- * Find the sidebar-foot settings trigger, walking up from our own entry until
- * the shared footer container that also holds the settings control.
+ * Consume the pending open mark.
+ * @returns whether expansion was asked for since the last consumption.
  */
-function findSettingsTrigger(from: HTMLElement | null): HTMLElement | null {
-  let node = from?.parentElement ?? null
-  for (let depth = 0; depth < 5 && node !== null; depth += 1) {
-    const candidates = Array.from(node.querySelectorAll<HTMLElement>('button[aria-haspopup="dialog"]'))
-    const outside = candidates.find((button) => from === null || !from.contains(button))
-    if (outside !== undefined) return outside
-    node = node.parentElement
+export function takeSettingsOpen(): boolean {
+  const open = pendingOpen
+  pendingOpen = false
+  return open
+}
+
+/**
+ * Subscribe to expansion requests while a card is on screen.
+ * @param listener - called on every request.
+ * @returns the unsubscribe function.
+ */
+export function onSettingsOpen(listener: () => void): () => void {
+  openListeners.add(listener)
+  return () => { openListeners.delete(listener) }
+}
+
+/** The list card whose title is exactly this package's name, if it is showing. */
+function bundleCard(packageName: string): HTMLElement | null {
+  const buttons = document.querySelectorAll<HTMLElement>('button')
+  for (const button of buttons) {
+    if ((button.textContent ?? '').trim() === packageName) return button
   }
   return null
 }
 
-/** The open settings dialog, if there is one. */
-function settingsDialog(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('[role="dialog"][aria-modal="true"]')
-}
-
-/** Click the nav row whose label matches, once it exists. */
-function selectSection(label: string, deadline: number): void {
-  const dialog = settingsDialog()
-  if (dialog !== null) {
-    const row = Array.from(dialog.querySelectorAll<HTMLElement>('nav button')).find(
-      (button) => (button.textContent ?? '').trim() === label,
-    )
-    if (row !== undefined) {
-      row.click()
-      return
-    }
+/** Click this bundle's card once it exists, giving up at the deadline. */
+function openCard(packageName: string, deadline: number): void {
+  const card = bundleCard(packageName)
+  if (card !== null) {
+    card.click()
+    return
   }
   if (Date.now() > deadline) return
-  window.setTimeout(() => { selectSection(label, deadline) }, SECTION_POLL_STEP_MS)
+  window.setTimeout(() => { openCard(packageName, deadline) }, CARD_POLL_STEP_MS)
+}
+
+/** What {@link openPluginSettings} needs from the caller's context. */
+export interface OpenPluginSettingsOptions {
+  /**
+   * The installed package name, as the manager's bundle card shows it. It is
+   * both the card to click and the seat key whose settings card expands.
+   */
+  packageName: string
+  /**
+   * Select the manager's main panel. Absent when the layout service is not
+   * available, in which case only the DOM steps are attempted.
+   */
+  selectPanel?: ((panelId: string) => void) | undefined
 }
 
 /**
- * Open the settings panel on this plugin's section.
- * @param from - our own trigger element, used to locate the settings control.
- * @param sectionLabel - the section's localized label, as registered.
- * @returns whether the trigger was found and clicked.
+ * Open this plugin's page in the Plugins manager, with its settings card
+ * expanded.
+ * @param options - see {@link OpenPluginSettingsOptions}.
+ * @returns whether the Plugins panel was selected.
  */
-export function openSettingsSection(from: HTMLElement | null, sectionLabel: string): boolean {
+export function openPluginSettings(options: OpenPluginSettingsOptions): boolean {
+  requestSettingsOpen()
+  let selected = false
   try {
-    const trigger = findSettingsTrigger(from)
-    if (trigger === null) return false
-    if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click()
-    selectSection(sectionLabel, Date.now() + SECTION_POLL_MS)
-    return true
+    if (options.selectPanel !== undefined) {
+      options.selectPanel(PLUGINS_PANEL_ID)
+      selected = true
+    }
+  } catch {
+    // The panel id is not registered in this deployment: the DOM steps below
+    // may still work if the manager is already showing, so keep going.
+  }
+  try {
+    openCard(options.packageName, Date.now() + CARD_POLL_MS)
   } catch {
     // A DOM shape we do not recognise is not an error worth surfacing.
-    return false
   }
+  return selected
 }

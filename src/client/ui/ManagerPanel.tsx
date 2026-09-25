@@ -37,7 +37,7 @@ export interface ManagerPanelProps {
   t: T
   /** Close the panel (owned by the trigger). */
   onClose: () => void
-  /** Open the settings panel on this plugin's section. */
+  /** Open this plugin's settings card on its page in the Plugins manager. */
   onOpenSettings: () => void
 }
 

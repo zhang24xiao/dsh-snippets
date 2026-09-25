@@ -2,9 +2,10 @@
  * The settings body: every preference, grouped the way the SiYuan original's
  * dialog groups them.
  *
- * Rendered inside this plugin's page in the **Settings** navigation
- * (`SettingsPage`, seat `settings.section`). The page owns the heading and the
- * description, so this body opens straight into the groups.
+ * Rendered inside the settings card on this package's page in the official
+ * **Plugins** manager (`PluginSettingsCard`, seat `plugins.bundle.config`). The
+ * card owns the heading, the description and the collapse, so this body opens
+ * straight into the groups.
  *
  * Every preference the SiYuan original exposes has a home here, minus the three
  * that describe features DSH does not have (see `docs/DESIGN.md`).
@@ -42,7 +43,7 @@ import { useConfig, useFailureToast, useHostStatus, type T } from './shared.tsx'
 
 const REPOSITORY = 'https://github.com/zhang24xiao/dsh-snippets'
 
-/** Props for {@link SettingsPage}. */
+/** Props for {@link SettingsBody}. */
 export interface SettingsBodyProps {
   controller: SnippetsController
   t: T

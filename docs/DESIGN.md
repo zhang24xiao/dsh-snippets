@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | 交付形态 | 单个 npm 包 `dsh-snippets`，宿主半 + 客户端半 | DSH 插件标准形态；`dsh.client.platform: "web"` 让客户端半被 `__DSH_WEB_PLUGINS__` 扫描进 Web 插件名册 |
 | 数据存储 | **只用官方设置命名空间 `dsh-snippets`** | 直接继承官方 settings 线的鉴权与脱敏；LAN / 隧道场景下不会因为自建接口被未配对设备注入 JS |
-| 界面接入 | `sidebar.footer.action` + `settings.section` 两个插槽 | 前者与 `dsh-remote-web-ui` 的手机图标同排（需求 3）；后者是设置导航里的独立设置页（需求 2，见 §12.5） |
+| 界面接入 | `sidebar.footer.action` + `plugins.bundle.config` 两个插槽 | 前者与 `dsh-remote-web-ui` 的手机图标同排（需求 3）；后者是官方插件管理页上本包详情页里的设置卡片（需求 2，见 §12.5、§12.7） |
 | 构建 | esbuild 打包 TSX 源码，产物入库 | 源码可维护、可用 JSX 与 CodeMirror；产物入库后 `github:` 安装无需构建 |
 | 编辑器 | CodeMirror 6（按需裁剪语言包） | 对齐 TCOTC 的编辑器能力（行号 / 高亮 / 括号匹配 / 搜索替换） |
 
@@ -26,7 +26,7 @@
 ```
 浏览器 · 客户端半 client/client.js
   ctx.slots ──注册席位──> 快捷开关面板 (sidebar.footer.action)
-                         代码片段管理器设置页 (settings.section)
+                         代码片段设置卡片 (plugins.bundle.config，键=包名)
                          片段编辑器（由面板打开）
   ctx.configForms.get('dsh-snippets') <──读写── 上面三个界面
   片段运行时 ──注入 <style> / 执行 Function──> DSH Web 页面
@@ -94,8 +94,8 @@ dsh-snippets/
 │           ├── EditorDialog.tsx # 片段编辑器（CodeMirror 6）
 │           ├── GistDialogs.tsx  # Gist 导入 / 差异对比 / 发布确认
 │           ├── OverlayHost.tsx  # shell.overlay 席位
-│           ├── SettingsBody.tsx # 设置页的八个分组
-│           └── SettingsPage.tsx # settings.section 页面
+│           ├── SettingsBody.tsx # 设置卡片的八个分组
+│           └── PluginSettingsCard.tsx # plugins.bundle.config 席位（可折叠卡片）
 ├── lib/index.js                 # 构建产物（入库）
 ├── client/client.js             # 构建产物（入库，含 CSS 与 CodeMirror）
 └── .gitignore                   # node_modules / .pnpm-store / *.log
@@ -311,10 +311,13 @@ new Function(snippet.content)()
 
 ---
 
-## 7. 设置页（`settings.section`）
+## 7. 设置卡片（`plugins.bundle.config`）
 
-注册为独立导航项，`id: 'dsh-snippets'`，`label: () => t('section.title')`（中文「代码片段管理器」/ English “Code Snippets”），
-`order` 排在「通用」之后。页面内是分组卡片：
+注册进官方插件管理页的 keyed 席位：`key` 取自构建清单里的包名（esbuild 注入的
+`__DSH_SNIPPETS_PACKAGE__`，与 `package.json` 的 `name` 同源，杜绝手写字符串与包名漂移），
+`locale: 'snippets'`。页面把这个 key 与已安装 bundle 的包名配对，把条目渲染在本包详情页的
+描述与「包含的组件」之间；席位本身不提供任何外壳，所以卡片自己拥有外框、标题、描述与折叠
+（默认收起，与同席位的 `dsh-remote-web-ui` 一致）。卡片内仍是分组：
 
 | 分组 | 内容 |
 | --- | --- |
@@ -335,10 +338,13 @@ new Function(snippet.content)()
 | `openNativeSnippets`（打开思源原生片段窗口） | **替换**为「打开备份目录」（DSH 无原生片段管理窗口） |
 | `fileWatchPath` 仅支持相对路径 | **放宽**为支持绝对路径与 `~/`，因为 DSH 宿主是 Node 进程而非内核沙箱 |
 
-**已知限制（诚实说明）**：DSH 的设置面板开合与当前分组是 `ui-settings-general` 组件内部的
-本地状态，没有对外的「打开到指定 section」服务。因此面板上的 `⚙` 采用**尽力而为**的深链：
-先点击侧栏官方的「设置」触发按钮，再按我们注册的本地化标题匹配并点击对应导航行；
-任何一步失败就只打开设置面板（用户自己点「代码片段管理器」），不会报错。
+**已知限制（诚实说明）**：插件管理页只暴露「选中某个 main panel」这一个调用
+（`ctx.layout.selectPanel('plugins')`，面板 id 就是它侧栏条目的 id `plugins`），
+**打开某个 bundle 的详情页没有服务**——当前打开的行是页面内部状态。因此面板上的 `⚙`
+采用**尽力而为**的深链：先 `selectPanel('plugins')`，再按可访问性契约在列表里找标题文本
+恰好等于本包名的卡片按钮并点击；同时把「待展开」标记置位（`deep-link.ts` 的 pending），
+卡片挂载时消费它，所以详情页一出现就是展开的。任何一步失败就只切到插件列表（用户自己点
+本包），不会报错。
 
 ---
 
@@ -484,7 +490,7 @@ dsh-snippets/
 │   └── client/
 │       ├── index.ts  controller.ts  apply.ts  locales.ts  styles.ts
 │       ├── host-api.ts  deep-link.ts
-│       └── ui/{shared,FooterEntry,ManagerPanel,EditorDialog,OverlayHost,SettingsPage,GistDialogs}.tsx
+│       └── ui/{shared,FooterEntry,ManagerPanel,EditorDialog,OverlayHost,PluginSettingsCard,GistDialogs}.tsx
 │       └── ui/code-editor.ts
 ├── lib/index.js          # 构建产物（宿主半，约 39 KB）
 ├── client/client.js      # 构建产物（客户端半，约 601 KB，含 CodeMirror）
@@ -492,7 +498,7 @@ dsh-snippets/
 └── test/{entry.ts,host.test.mjs,client.test.mjs,cordis.test.mjs,client-modules.test.mjs}
 ```
 
-### 12.5 设置入口的最终位置（需求 2 的两次修订）
+### 12.5 设置入口的最终位置（需求 2 的三次修订）
 
 设置页最初注册进 `settings.section`，是设置导航里的一级项。实机看过后改为放进
 **设置 → 插件 → 插件配置** 那张卡片列表，机制是 `settings.plugin.item`——一个**以设置命名空间
@@ -506,14 +512,16 @@ dsh-snippets/
 `~/.dsh/settings.yaml` 里 `dsh-snippets` 命名空间的数据始终完好。这个「静默」是设计如此：
 未被声明或无人认领的席位会被直接丢弃，而不是当成错误。
 
-回退后的形态：设置面板的左导航按 registrant 渲染一个条目，并把内容挂进内容列。外壳不提供任何
-文案与容器，所以页面自己拥有标题与描述（`.dsn-settings-title` / `.dsn-settings-desc`），其下
-仍是 `SettingsBody` 的分组。导航标签在注册时读一次，所以语言切换靠**重新注册**实现，而不是让
-外壳订阅 locale 状态。
+**2026-09-24：设置入口迁到 `plugins.bundle.config`。** 这次是主动迁移：官方插件管理页在
+0.1.7-rc.1 上就是第三方插件的配置宿主（同席位的 `dsh-remote-web-ui` 已经把它的「远程访问设置」
+卡片放在本包详情页里），用户也要求与它对齐。原先的 `settings.section` 页面被删除（不保留第二个
+入口），`SettingsPage.tsx` 换成 `PluginSettingsCard.tsx`，`SettingsBody` 一行未改。细节与证据
+见 §12.7。
 
-**一处有意的差异**：页面内容仍是即时生效，没有 Save / Discard。邻居是暂存式表单，而代码片段
+**一处有意的差异**：卡片内容仍是即时生效，没有 Save / Discard。邻居是暂存式表单，而代码片段
 管理器的使用方式就是「拨一下开关、看页面反应」，中间插一个保存会把同一个动作劈成两半。
-`test/client.test.mjs` 会把整页渲染进真实 DOM，断言标题、描述与八个分组都在。
+`test/client.test.mjs` 把卡片渲染进真实 DOM：先断言默认收起、正文一个分组都不渲染，再点击头部，
+断言八个分组都在。
 
 ### 12.4 验证结果
 
@@ -521,7 +529,7 @@ dsh-snippets/
   `test/host.test.mjs` 与 `test/client.test.mjs` 全部通过。
 - 客户端测试覆盖需求 1 的核心链路：启用的 CSS 片段恰好产生一个 `<style>`、
   启用的 JS 片段恰好执行一次、停用只移除对应元素、类型总开关拦截注入、卸载后无残留；
-  并对三个已注册席位（`sidebar.footer.action` / `settings.section` / `shell.overlay`）做服务端渲染。
+  并对三个已注册席位（`sidebar.footer.action` / `plugins.bundle.config` / `shell.overlay`）做服务端渲染。
   这一步在实现期抓到了一个真实缺陷：`Observable.get` 原本是原型方法，
   作为裸引用传给 `useSyncExternalStore` 时 `this` 丢失，会让插件在浏览器里完全无法渲染；
   现已改为箭头属性。
@@ -542,7 +550,7 @@ dsh-snippets/
 | 客户端读 | `ctx.settingsScope.bind(...)` | `ctx.configForms.get(entryId)` → `ConfigForm` |
 | 客户端写 | `scope.set/unset` | `form.mutate(ops, expectedRevision?)` |
 | 读快照 | Observable | `form.getSnapshot()`（引用稳定） + `form.subscribe()` |
-| 设置页席位 | `settings.plugin.item`（已不存在） | `settings.section`（本次沿用，见 §12.5） |
+| 设置页席位 | `settings.plugin.item`（已不存在） | `settings.section`（当时沿用；2026-09-24 又迁到 `plugins.bundle.config`，见 §12.7） |
 
 `ctx.settings.installSection()`、`ctx.settingsScope`、`settings.plugin.item` 在 0.1.7-rc.1 里
 **都不存在**（对已装包做过全量符号检索，命中 0 次）。skill `dsh-plugin-dev` 的
@@ -672,3 +680,52 @@ profile 直接在原地解析。装前备份了 profile 的 `package.json` 与 `
 
 顺带一提：`--dump-config` 会打印 `patch: entry "chinese-thinking" not found`。那是 profile 补丁层里
 早就存在的悬空条目（本包的补丁只插入 `dsh-snippets` 一行，动不了别的表项），与本次安装无关。
+
+### 12.7 设置卡片迁入官方插件管理页（2026-09-24）
+
+**目标**：设置出现在官方插件管理页**本包详情页**里，与 `@linxin666/dsh-remote-web-ui`
+的「远程访问设置」卡片同形同位；设置导航里的独立页面不再保留。
+
+**席位契约**（读自已装的 `@deepseek-ai/dsh-client-ui-plugin-manager` 0.1.7-rc.1 的
+`slot-contract` 与产物）：
+
+- `plugins.bundle.config`：**keyed**，`key` = bundle 的 npm 包名，`owner` =
+  `{ view: 'summary' | 'page' }`。页面在 bundle 详情页以 `view: 'page'` 渲染一次，位置在
+  描述与「包含的组件」之间（`data-plugin-config` 那个 section）。
+- `plugins.row.config`：keyed，`key` = `<包名>#<row id>`；本包只声明一个 row，故不用。
+- 席位本身**不提供任何外壳**：标题、描述、折叠都由注册方的组件自己画——同席位的
+  `dsh-remote-web-ui` 也是自带 `settings-card.module.css`。
+
+**改动**
+
+| 文件 | 改动 |
+| --- | --- |
+| `src/client/index.ts` | `settings.section` 注册块整块删除，换成 `plugins.bundle.config`（`key: PLUGIN_PACKAGE`）；席位类型在文件内 `declare module` 声明，**不** import 插件管理包（跨插件值导入会被 bundle 纯净度门禁拒绝，manager 包也不在本包依赖里） |
+| `src/client/ui/PluginSettingsCard.tsx` | 新增：折叠卡片 + `CardText`；`view === 'summary'` 时只渲染标题/描述一行 |
+| `src/client/ui/SettingsPage.tsx` | 删除 |
+| `src/client/deep-link.ts` | 重写：`ctx.layout.selectPanel('plugins')` + DOM 找本包卡片按钮 + pending 展开标记；导出 `requestSettingsOpen` / `takeSettingsOpen` / `onSettingsOpen` |
+| `src/client/styles.ts` | `.dsn-settings*` 换成 `.dsn-card*`；`.dsn-card-body` 内把 `SettingsBody` 的分组框压平，避免「框套框」 |
+| `src/client/locales.ts` | `section.title/description` → `card.title` / `card.description`；`panel.settings` 改指「插件」 |
+| `src/client/ui/FooterEntry.tsx`、`ManagerPanel.tsx` | 齿轮改为调用注入的 `openSettings`，不再自己走设置面板 DOM |
+| `esbuild.config.mjs`、`src/shared/version.ts` | 新增 `__DSH_SNIPPETS_PACKAGE__` 注入与 `PLUGIN_PACKAGE` 导出 |
+
+**为什么 key 用构建期注入的包名**：页面按 `pkg.name` 派发（`configured` 判的是
+`ledger.bundles.has(pkg.name)`），key 不相等就被静默丢弃——表现是详情页有描述却没有卡片，
+不报任何错。手写字符串一旦与 `package.json` 漂移就是这种失败，所以从清单注入。
+
+**验证**（`npm run check` 全绿）
+
+- `npx tsc --noEmit`：0 error。
+- `test/client.test.mjs`：席位集合断言改为 `plugins.bundle.config` / `shell.overlay` /
+  `sidebar.footer.action`，并断言新席位的 `key === 'dsh-snippets'` 与 `locale`；SSR 部分换成
+  `renderSettingsCard`（挂载 → 断言默认收起、正文一个分组都不渲染 → 点击头部 → 断言八个分组全在
+  且 `aria-expanded` 翻转）；样式断言换成 `.dsn-card` 系列与分组压平规则。
+- 同批断言钉住两个负例：`settings.section` 与 `settings.plugin.item` 都不允许再被注册。
+- `test/host.test.mjs`、`test/cordis.test.mjs`、`test/client-modules.test.mjs` 未改动且全部通过
+  （宿主半与席位无关）。
+- 实机侧：`link:` 安装 + `patchReload: live`，重建 `client/client.js` 后由运行中的 3080
+  按新 rev 提供，`/plugins/??dsh-snippets/client.js&rev=<新 rev>` 取到的正文里含
+  `plugins.bundle.config`。
+
+**仍需人眼确认**：展开卡片后的实际观感、以及 `⚙` 深链在真实 DOM 上的落点，需要在浏览器里
+刷新一次页面后确认——这两项没有只读通道能替代。
